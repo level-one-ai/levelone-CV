@@ -249,10 +249,51 @@ and never commit `.env.local`.
 
 ## Step 4 — Build the five tables
 
-Your database needs five tables. PocketBase calls them **collections**. You are
-going to make them by hand. It is repetitive but it is not hard.
+Your database needs five tables. PocketBase calls them **collections**.
 
-For every collection you make, the steps are the same:
+**One command builds all five for you.** Make sure PocketBase is running, then
+in your project folder type:
+
+```bash
+npm run setup:pocketbase
+```
+
+You should see:
+
+```
+  ✓ cv_profile      created (7 fields)
+  ✓ cv_experience   created (7 fields)
+  ✓ cv_skills       created (4 fields)
+  ✓ cv_projects     created (7 fields)
+  ✓ applications    created (11 fields)
+
+✓ Done — 5 created.
+```
+
+That is Step 4 finished. Skip ahead to Step 5.
+
+> **Want to look before it touches anything?** Add `-- --dry-run`:
+>
+> ```bash
+> npm run setup:pocketbase -- --dry-run
+> ```
+>
+> It prints exactly what it would change and writes nothing.
+
+> **Is it safe to run twice?** Yes. It never deletes a collection, never
+> deletes or changes a field you already have, and never touches your API
+> rules. The most it will ever do is add something that is missing. If you
+> already built some tables by hand, run it anyway — it fills in the gaps and
+> leaves your data alone.
+
+---
+
+### What it just built (and how to build it by hand)
+
+You do not need to read this section if the command worked. It is here as a
+reference for checking a table, or for building one by hand if you prefer.
+
+To make a collection by hand:
 
 1. Click **New collection** in the left sidebar
 2. Choose **Base** (not Auth, not View)
@@ -340,22 +381,24 @@ application.
 | `created` | Autodate |
 | `updated` | Autodate |
 
-Three of these need extra care:
+Three of these need extra care. **The command sets all three for you** — this
+matters only if you are building by hand.
 
 - **`created`** — this is what puts your applications in date order in the
-  sidebar. PocketBase usually adds `created` and `updated` for you when you
-  make a new collection. Scroll down the field list and check. If they are
-  there, leave them alone. If they are not, add `created` yourself: choose
-  **Autodate** as the type, name it `created`, and in **Options** tick
-  **Create**. Do the same for `updated`, ticking both **Create** and
-  **Update**.
-
+  sidebar. Choose **Autodate** as the type, name it `created`, and in
+  **Options** tick **Create**. Do the same for `updated`, ticking both
+  **Create** and **Update**. Do not skip this one: without it the sidebar
+  cannot load at all.
 - **`job_description`** — click the field, open **Options**, and set
   **Max length** to `30000`. Job adverts are long, and the default limit will
   cut them off.
 - **`docx`** — this is where your generated CV file is stored. Click the field
-  and open **Options**. Set **Max file size** to at least `5MB`. Leave
-  **Max files** at 1.
+  and open **Options**. Set **Max file size** to at least `5MB`, leave
+  **Max files** at 1, and tick **Protected** so the file cannot be downloaded
+  without going through the app.
+
+> **Not sure you got it right?** Run `npm run setup:pocketbase -- --dry-run`.
+> It tells you which fields are missing without changing anything.
 
 That is the storage sorted. Your CV documents live in PocketBase, right beside
 the text that goes with them.

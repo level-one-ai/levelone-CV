@@ -50,9 +50,10 @@ PocketBase · `@google/genai` · `docxtemplater` + `pizzip` · `docx-preview` ·
 
 ```bash
 npm install
-cp .env.example .env.local     # then fill it in — see SETUP.md
+cp .env.example .env.local     # then fill it in — see ENV-VARS.md
 ./pocketbase serve             # in one terminal
-npm run dev                    # in another
+npm run setup:pocketbase       # build the five collections, once
+npm run dev                    # in another terminal
 ```
 
 Then open http://localhost:3000.
@@ -60,9 +61,17 @@ Then open http://localhost:3000.
 ## Handy commands
 
 ```bash
-npm run check:template   # lists the tags in templates/master-cv.docx
-npm run build            # production build
+npm run setup:pocketbase             # build the five collections
+npm run setup:pocketbase -- --dry-run # ...or just report what's missing
+npm run check:template               # list the tags in templates/master-cv.docx
+npm run build                        # production build
 ```
+
+`setup:pocketbase` is additive only — it never drops a collection, never edits
+or removes an existing field, and never touches API rules, so it is safe to
+re-run against a database that already holds your CV. The schema it applies
+lives in `scripts/pocketbase-schema.mjs`, which is the single source of truth
+for what the collections must contain.
 
 ## How applications are stored
 

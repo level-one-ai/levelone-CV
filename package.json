@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "setup:pocketbase": "node scripts/setup-pocketbase.mjs",
     "check:template": "node scripts/check-template.mjs"
   },
   "dependencies": {
