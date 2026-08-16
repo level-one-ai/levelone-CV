@@ -6,7 +6,6 @@
  *
  *   cv_profile     lib/cv.ts (loadMasterCv) and lib/docx.ts (buildTemplateData)
  *   cv_experience  lib/cv.ts
- *   cv_skills      lib/cv.ts
  *   cv_projects    lib/cv.ts and lib/docx.ts
  *   applications   app/api/generate-application/route.ts (write)
  *                  lib/applications.ts (read back)
@@ -38,6 +37,10 @@ export const COLLECTIONS = [
       // A label -> URL map, e.g. {"LinkedIn": "https://..."}.
       json("links"),
       text("master_summary"),
+      // Your whole skill list on one line, separated by commas. This used to
+      // be a collection of its own — 30 records of four fields each, for data
+      // that reaches the prompt as a flat list either way.
+      text("skills", { max: 5000 }),
     ],
   },
   {
@@ -52,16 +55,6 @@ export const COLLECTIONS = [
       // A list of achievement lines. lib/cv.ts also accepts a plain
       // multi-line string here, for rows typed by hand in the Admin UI.
       json("bullets"),
-      number("order"),
-    ],
-  },
-  {
-    name: "cv_skills",
-    note: "One row per skill.",
-    fields: [
-      text("name"),
-      text("category"),
-      text("proficiency"),
       number("order"),
     ],
   },

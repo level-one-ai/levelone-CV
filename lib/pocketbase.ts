@@ -6,7 +6,6 @@ export const POCKETBASE_URL =
 export const COLLECTIONS = {
   profile: "cv_profile",
   experience: "cv_experience",
-  skills: "cv_skills",
   projects: "cv_projects",
   applications: "applications",
 } as const;

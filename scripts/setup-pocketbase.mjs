@@ -245,13 +245,25 @@ if (repaired) parts.push(`${repaired} repaired`);
 if (unchanged) parts.push(`${unchanged} already correct`);
 
 console.log(`${tick} Done — ${parts.join(", ")}.`);
+
+// Skills used to live in their own collection. Point out the leftover rather
+// than deleting it — it is Dean's data and his call.
+try {
+  await pb.collections.getOne("cv_skills");
+  console.log("");
+  console.log("Note: you still have a cv_skills collection.");
+  console.log("  Skills now live on cv_profile, in one comma-separated line.");
+  console.log("  Copy them across, then delete cv_skills by hand when you are ready.");
+  console.log("  Nothing breaks while it sits there — the app simply ignores it.");
+} catch {
+  // Not there. Nothing to say.
+}
 console.log("");
 console.log("Next: open the admin page and type your CV in.");
 console.log(`  ${url}/_/`);
 console.log("");
-console.log("  cv_profile     one row: your name, headline and summary");
+console.log("  cv_profile     one row: your details, summary and skills line");
 console.log("  cv_experience  one row per job");
-console.log("  cv_skills      one row per skill");
 console.log("  cv_projects    one row per project");
 console.log("");
 console.log("  applications   leave empty — the app fills this in for you");

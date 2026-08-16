@@ -5,7 +5,6 @@ import type {
   CvExperience,
   CvProfile,
   CvProject,
-  CvSkill,
   MasterCv,
 } from "@/lib/types";
 
@@ -36,6 +35,38 @@ function asList(value: unknown): string[] {
   return [];
 }
 
+/**
+ * Splits the profile's skills line into a list.
+ *
+ * Deliberately separate from asList() rather than a flag on it: skills are
+ * comma-separated, but experience bullets are not, and bullets routinely
+ * contain commas ("Grew revenue from £0 to £6k, in nine months"). Teaching
+ * asList to split on commas would quietly shred every one of them.
+ *
+ * Accepts a JSON array too, so a value left over from when skills were their
+ * own collection still reads correctly.
+ */
+function asSkillList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value !== "string" || !value.trim()) return [];
+
+  const text = value.trim();
+  if (text.startsWith("[")) {
+    try {
+      return asSkillList(JSON.parse(text));
+    } catch {
+      // Not JSON after all — treat it as an ordinary line.
+    }
+  }
+
+  return text
+    .split(/[,\n\r]+/)
+    .map((skill) => skill.replace(/^[-•*]\s*/, "").trim())
+    .filter(Boolean);
+}
+
 function asLinkMap(value: unknown): Record<string, string> {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return Object.fromEntries(
@@ -58,24 +89,22 @@ function asLinkMap(value: unknown): Record<string, string> {
 /**
  * Reads the whole master CV in one pass.
  *
- * The four collections are independent, so they are fetched in parallel — the
+ * The three collections are independent, so they are fetched in parallel — the
  * request already spends seconds inside Gemini, and there is no reason to add
- * four serial round trips on top of it.
+ * serial round trips on top of it. Skills ride along on the profile record.
  */
 export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
   let profileRaw;
   let experienceRaw;
-  let skillsRaw;
   let projectsRaw;
 
   try {
-    [profileRaw, experienceRaw, skillsRaw, projectsRaw] = await Promise.all([
+    [profileRaw, experienceRaw, projectsRaw] = await Promise.all([
       // No sort on the profile: it holds a single row, and sorting by a
       // timestamp would make the read depend on the optional `updated`
       // autodate field existing.
       pb.collection(COLLECTIONS.profile).getFullList(),
       pb.collection(COLLECTIONS.experience).getFullList({ sort: "order" }),
-      pb.collection(COLLECTIONS.skills).getFullList({ sort: "order" }),
       pb.collection(COLLECTIONS.projects).getFullList({ sort: "order" }),
     ]);
   } catch (err) {
@@ -98,6 +127,7 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
     location: String(first.location ?? ""),
     links: asLinkMap(first.links),
     master_summary: String(first.master_summary ?? ""),
+    skills: asSkillList(first.skills),
   };
 
   const experience: CvExperience[] = experienceRaw.map((r) => ({
@@ -108,14 +138,6 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
     end_date: String(r.end_date ?? ""),
     location: String(r.location ?? ""),
     bullets: asList(r.bullets),
-    order: Number(r.order ?? 0),
-  }));
-
-  const skills: CvSkill[] = skillsRaw.map((r) => ({
-    id: r.id,
-    name: String(r.name ?? ""),
-    category: String(r.category ?? ""),
-    proficiency: String(r.proficiency ?? ""),
     order: Number(r.order ?? 0),
   }));
 
@@ -130,7 +152,7 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
     order: Number(r.order ?? 0),
   }));
 
-  return { profile, experience, skills, projects };
+  return { profile, experience, skills: profile.skills, projects };
 }
 
 /**
@@ -161,14 +183,7 @@ export function formatCvForPrompt(cv: MasterCv): string {
     for (const bullet of job.bullets) lines.push(`    * ${bullet}`);
   }
 
-  lines.push("", "SKILLS:");
-  for (const skill of skills) {
-    lines.push(
-      `- ${skill.name}${skill.category ? ` [${skill.category}]` : ""}${
-        skill.proficiency ? ` — ${skill.proficiency}` : ""
-      }`
-    );
-  }
+  lines.push("", "SKILLS:", skills.join(", ") || "(none listed yet)");
 
   lines.push("", "AI PROJECTS:");
   for (const project of projects) {

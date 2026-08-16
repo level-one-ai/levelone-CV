@@ -247,11 +247,11 @@ and never commit `.env.local`.
 
 ---
 
-## Step 4 — Build the five tables
+## Step 4 — Build the four tables
 
-Your database needs five tables. PocketBase calls them **collections**.
+Your database needs four tables. PocketBase calls them **collections**.
 
-**One command builds all five for you.** Make sure PocketBase is running, then
+**One command builds all four for you.** Make sure PocketBase is running, then
 in your project folder type:
 
 ```bash
@@ -261,13 +261,12 @@ npm run setup:pocketbase
 You should see:
 
 ```
-  ✓ cv_profile      created (7 fields)
+  ✓ cv_profile      created (8 fields)
   ✓ cv_experience   created (7 fields)
-  ✓ cv_skills       created (4 fields)
   ✓ cv_projects     created (7 fields)
   ✓ applications    created (11 fields)
 
-✓ Done — 5 created.
+✓ Done — 4 created.
 ```
 
 That is Step 4 finished. Skip ahead to Step 5.
@@ -322,6 +321,7 @@ This is you. It holds one row only.
 | `location` | Plain text |
 | `links` | JSON |
 | `master_summary` | Plain text |
+| `skills` | Plain text — set **Max length** to `5000` |
 
 ### Collection 2: `cv_experience`
 
@@ -337,18 +337,7 @@ One row per job you have had.
 | `bullets` | JSON |
 | `order` | Number |
 
-### Collection 3: `cv_skills`
-
-One row per skill.
-
-| Field name | Type |
-| --- | --- |
-| `name` | Plain text |
-| `category` | Plain text |
-| `proficiency` | Plain text |
-| `order` | Number |
-
-### Collection 4: `cv_projects`
+### Collection 3: `cv_projects`
 
 One row per project you are proud of.
 
@@ -362,7 +351,7 @@ One row per project you are proud of.
 | `link` | Plain text |
 | `order` | Number |
 
-### Collection 5: `applications`
+### Collection 4: `applications`
 
 You never type in this one. The app fills it in every time you generate an
 application.
@@ -466,6 +455,22 @@ Every part needs `"straight quotes"` around it, and a comma between the lines
 but not after the last one. If PocketBase turns the box red, a quote or a comma
 is in the wrong place.
 
+- `skills` — all your skills on **one line**, separated by commas:
+
+```
+TypeScript, Next.js, React, Node.js, PocketBase, Gemini API, n8n, Tailwind CSS, SQL, Docker
+```
+
+That is the whole thing. No quotes, no brackets, no JSON. Spacing does not
+matter — `TypeScript,Next.js` and `TypeScript, Next.js` both work.
+
+List 15 to 30 of them. The AI picks out the ones each advert asks for, so a
+longer list gives it more to match against. Put your strongest first; where two
+skills are equally relevant, the AI tends to follow your order.
+
+> **New lines work too.** If you would rather put one skill per line, do that
+> instead. The app accepts either.
+
 ### Fill in `cv_experience` (one record per job)
 
 - `company`, `role`, `location` — as they were
@@ -487,15 +492,6 @@ except the last.
 
 **Numbers are what make you stand out.** Money saved, hours saved, people
 served, percent improved. Put them in.
-
-### Fill in `cv_skills` (one record per skill)
-
-- `name` — e.g. `TypeScript`
-- `category` — e.g. `Languages`, `AI`, `Cloud`
-- `proficiency` — e.g. `Expert`, `Working knowledge`
-- `order` — lower numbers show first
-
-Add 15 to 30 of these. The AI picks the ones each advert asks for.
 
 ### Fill in `cv_projects` (one record per project)
 
@@ -662,7 +658,7 @@ type `npm run dev`.
 Your CV holds your phone number, your email address and where you live. Here is
 how that stays yours.
 
-**All five collections are locked by default.** PocketBase calls these settings
+**All four collections are locked by default.** PocketBase calls these settings
 **API rules**, and when you leave them alone, nobody can read a collection
 without signing in. The app signs in for you using the login from Step 3, and
 it does that on the server, where nothing in your browser can see it.

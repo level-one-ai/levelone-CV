@@ -52,7 +52,7 @@ PocketBase · `@google/genai` · `docxtemplater` + `pizzip` · `docx-preview` ·
 npm install
 cp .env.example .env.local     # then fill it in — see ENV-VARS.md
 ./pocketbase serve             # in one terminal
-npm run setup:pocketbase       # build the five collections, once
+npm run setup:pocketbase       # build the four collections, once
 npm run dev                    # in another terminal
 ```
 
@@ -61,7 +61,7 @@ Then open http://localhost:3000.
 ## Handy commands
 
 ```bash
-npm run setup:pocketbase             # build the five collections
+npm run setup:pocketbase             # build the four collections
 npm run setup:pocketbase -- --dry-run # ...or just report what's missing
 npm run check:template               # list the tags in templates/master-cv.docx
 npm run build                        # production build

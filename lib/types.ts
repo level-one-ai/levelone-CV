@@ -10,6 +10,8 @@ export interface CvProfile {
   /** Free-form label -> URL map, e.g. { LinkedIn: "https://..." }. */
   links: Record<string, string>;
   master_summary: string;
+  /** Parsed from one comma-separated line in PocketBase. */
+  skills: string[];
 }
 
 export interface CvExperience {
@@ -20,14 +22,6 @@ export interface CvExperience {
   end_date: string;
   location: string;
   bullets: string[];
-  order: number;
-}
-
-export interface CvSkill {
-  id: string;
-  name: string;
-  category: string;
-  proficiency: string;
   order: number;
 }
 
@@ -46,7 +40,8 @@ export interface CvProject {
 export interface MasterCv {
   profile: CvProfile;
   experience: CvExperience[];
-  skills: CvSkill[];
+  /** Lifted from the profile record — see CvProfile.skills. */
+  skills: string[];
   projects: CvProject[];
 }
 
