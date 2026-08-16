@@ -179,18 +179,34 @@ Now open your web browser and go to:
 The first time you do this it asks you to make an account. This is your
 superuser account — the owner of the database.
 
-- Type your email address
-- Make up a strong password. **Write it down somewhere safe.**
+> **Read this bit carefully.** You are creating a **brand new account that only
+> exists inside PocketBase**. You are not signing in to anything you already
+> have.
+>
+> - The **email** is only used as a username. PocketBase never sends mail to
+>   it and never checks that it is real. You could type `dean@local` and it
+>   would work exactly the same.
+> - The **password is one you invent right now**, on this screen. It is *not*
+>   your email password, *not* your Google password, and *not* any password you
+>   already use somewhere else. **Do not reuse a real password here.** Make up
+>   a new one.
+
+- Type an email address to use as your username
+- Invent a strong password. **Write it down somewhere safe.**
 - Click **Create and login**
 
 Now put those same two things into your `.env.local` file:
 
 ```
 POCKETBASE_ADMIN_EMAIL=you@yourdomain.com
-POCKETBASE_ADMIN_PASSWORD=the password you just made
+POCKETBASE_ADMIN_PASSWORD=the password you just invented
 ```
 
 Save the file.
+
+These two lines are how the app unlocks your database. They are also the only
+thing standing between a stranger and your CV, so keep them out of screenshots
+and never commit `.env.local`.
 
 ---
 
@@ -306,6 +322,36 @@ Three of these need extra care:
 
 That is the storage sorted. Your CV documents live in PocketBase, right beside
 the text that goes with them.
+
+---
+
+## How your applications get saved
+
+You do not have to do anything for this to work. It is worth understanding
+though, because it explains what the sidebar is showing you.
+
+**Every time you generate an application, the app saves one row** in the
+`applications` collection. One job advert in, one row out. It is not a
+conversation you can add to later — the sidebar is a list of past results, not
+a list of chats you can carry on.
+
+**The text and the Word file are saved together in that same row.** That is why
+clicking an old application in the sidebar brings back both halves of the
+screen at once: the cards on the right, and the CV in the sliding panel.
+
+**The sidebar only reads four things** from each row — the id, the job title,
+the company, and the date it was made. It does not load the job advert or the
+cover note until you click one. That is what keeps it quick even after a
+hundred applications.
+
+**The date is what puts them in order.** It is also what sorts them into
+"Today", "Yesterday" and "Previous 7 days". This is the `created` field from
+the table above — if it is missing, the sidebar cannot work, which is why it
+gets its own warning up there.
+
+**Deleting removes both parts.** Hover over an application in the sidebar and
+click the bin icon. The row and its Word file are both removed. There is no
+undo, so be sure.
 
 ---
 
@@ -531,6 +577,74 @@ type `npm run dev`.
 
 ---
 
+## Keeping your data private
+
+Your CV holds your phone number, your email address and where you live. Here is
+how that stays yours.
+
+**All five collections are locked by default.** PocketBase calls these settings
+**API rules**, and when you leave them alone, nobody can read a collection
+without signing in. The app signs in for you using the login from Step 3, and
+it does that on the server, where nothing in your browser can see it.
+
+**Do not set the API rules to public on these collections.** There is a setting
+that makes a collection readable by anyone with no password at all. It is
+useful for public things like a blog. It is a bad idea here: anyone who found
+your PocketBase address could read your whole CV, download every application
+you have generated, and delete them.
+
+**On your own computer, you are already safe.** When PocketBase says
+`Server started at http://127.0.0.1:8090`, that address means "this machine
+only". Nothing on the internet can reach it.
+
+**If you ever move PocketBase to a server**, that changes. The address becomes
+reachable from anywhere, and your Step 3 password becomes the only thing
+protecting it. That is the moment a strong invented password really matters.
+
+**Back up `pb_data`.** That folder sits next to the PocketBase file and holds
+everything — your CV, your skills, and every application you have generated.
+Copy it to a USB stick or a cloud drive now and then. PocketBase can also do it
+for you: in the admin page, click the gear icon, then **Backups**, then
+**New backup**.
+
+---
+
+## Optional: signing in without a password
+
+You do not need this. Skip it unless you would rather not have a password
+sitting in a file at all.
+
+PocketBase can give you a long-lived **token** instead. A token is a very long
+string of letters that works in place of the email and password.
+
+To get one:
+
+1. Open the admin page at **http://127.0.0.1:8090/_/**
+2. In the left sidebar, click **Collections**
+3. Open the **`_superusers`** collection
+4. Click on your own record
+5. Click **Impersonate**
+6. It asks for a **duration in seconds**. Leave it blank and you get about two
+   weeks. Type `31536000` and you get a year
+7. Copy the **Impersonate auth token** it shows you
+
+**Be honest with yourself about what this gains you.** That token signs in *as*
+you, so it can do everything your password can do. It is not safer in that
+sense. The only real gain is that a made-up PocketBase password never has to be
+written into a file. Two things to know:
+
+- **It expires.** When the duration runs out, the app stops working until you
+  make a new token. The password never expires.
+- **To cancel a token, change your PocketBase password.** That switches off
+  every token you have ever made.
+
+**This needs a small code change to use.** `lib/pocketbase.ts` currently signs
+in with the email and password. Using a token instead means swapping one line
+for `pb.authStore.save(token, null)`. That change has not been made, so the
+app expects the email and password today.
+
+---
+
 ## Every setting, in one place
 
 This is the full list of what goes in `.env.local`.
@@ -581,13 +695,4 @@ So there is no Google Cloud console, no service account, and no JSON key file
 to look after. The only Google thing left is the Gemini API key, and that is
 needed because Gemini is the AI doing the writing.
 
----
-
-## Backing up
-
-Everything you type into PocketBase lives in a folder called `pb_data`, next to
-the PocketBase file. Copy that folder somewhere safe every so often — a USB
-stick or a cloud drive is fine. That one folder is your whole CV history.
-
-PocketBase can also do this for you. In the admin page, click the gear icon,
-then **Backups**, then **New backup**.
+Backing all of this up is one folder — see **Keeping your data private** above.

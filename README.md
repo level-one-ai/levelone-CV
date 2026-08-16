@@ -60,11 +60,26 @@ npm run check:template   # lists the tags in templates/master-cv.docx
 npm run build            # production build
 ```
 
+## How applications are stored
+
+One generation writes **one record** to the `applications` collection — the
+sidebar is a list of past results, not a resumable conversation. The eight text
+and JSON fields plus the `.docx` go up in a single `create()` call
+(`app/api/generate-application/route.ts`), which is why reopening an entry
+restores both the cards and the document.
+
+The sidebar reads only `id,job_title,company,created`, sorted `-created`
+(`app/api/applications/route.ts`), so the list stays cheap regardless of how
+many adverts are stored. Date grouping is computed client-side in
+`HistorySidebar.tsx`. The full record is fetched on click, and the document
+separately from `/api/applications/[id]/file`.
+
 ## Notes
 
 - Every CV collection keeps PocketBase's default locked API rules. All database
   access happens server-side with the superuser login in `.env.local`; nothing
-  in `components/` touches PocketBase.
+  in `components/` touches PocketBase. The login is a PocketBase-only account
+  created in its admin UI — see SETUP.md step 3.
 - The `.docx` preview is a faithful in-browser render, not a pixel-perfect copy
   of Word. The Download button always gives you the exact file.
 - `templates/master-cv.docx` is deliberately not committed — it is your
