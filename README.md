@@ -6,6 +6,10 @@ rewritten for that exact role.
 **New here? Read [SETUP.md](./SETUP.md).** It walks through every step in plain
 English, from installing Node to typing in your CV.
 
+**Just need the keys and settings? Read [ENV-VARS.md](./ENV-VARS.md).** It
+covers the six environment variables on their own — where each one comes from,
+what breaks when it is wrong, and how to check it.
+
 ---
 
 ## How it works

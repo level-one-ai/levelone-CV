@@ -165,19 +165,16 @@ type:
 You should see something like:
 
 ```
-Server started at http://127.0.0.1:8090
+2026/08/16 11:53:18 Server started at http://127.0.0.1:8090
+├─ REST API:  http://127.0.0.1:8090/api/
+└─ Dashboard: http://127.0.0.1:8090/_/
 ```
 
 **Leave this terminal window open.** If you close it, the database stops.
 
-Now open your web browser and go to:
+### Now make your database account
 
-**http://127.0.0.1:8090/_/**
-
-(The `/_/` at the end matters. Include it.)
-
-The first time you do this it asks you to make an account. This is your
-superuser account — the owner of the database.
+Your database needs an owner. PocketBase calls this a **superuser**.
 
 > **Read this bit carefully.** You are creating a **brand new account that only
 > exists inside PocketBase**. You are not signing in to anything you already
@@ -186,27 +183,67 @@ superuser account — the owner of the database.
 > - The **email** is only used as a username. PocketBase never sends mail to
 >   it and never checks that it is real. You could type `dean@local` and it
 >   would work exactly the same.
-> - The **password is one you invent right now**, on this screen. It is *not*
->   your email password, *not* your Google password, and *not* any password you
->   already use somewhere else. **Do not reuse a real password here.** Make up
->   a new one.
+> - The **password is one you invent right now**. It is *not* your email
+>   password, *not* your Google password, and *not* any password you already
+>   use somewhere else. **Do not reuse a real password here.** Make up a new
+>   one.
 
-- Type an email address to use as your username
-- Invent a strong password. **Write it down somewhere safe.**
-- Click **Create and login**
+Open a **second** terminal window, go to the project folder, and type this —
+but swap in your own email and your own made-up password:
 
-Now put those same two things into your `.env.local` file:
+**Windows:**
+
+```bash
+.\pocketbase.exe superuser create you@yourdomain.com MyNewMadeUpPassword123
+```
+
+**Mac:**
+
+```bash
+./pocketbase superuser create you@yourdomain.com MyNewMadeUpPassword123
+```
+
+You should see:
+
+```
+Successfully created new superuser "you@yourdomain.com"!
+```
+
+> **There is a second way if you prefer clicking.** Look at the terminal where
+> PocketBase is running. When no account exists yet, it prints a long link
+> containing `#/pbinstall/` followed by a jumble of letters. Copy that whole
+> link into your browser and it opens a page where you can type the email and
+> password in instead.
+>
+> Note that just visiting `http://127.0.0.1:8090/_/` on its own is **not**
+> enough on current versions of PocketBase — you need either the command above
+> or that install link.
+
+### Check it worked
+
+Open your browser and go to:
+
+**http://127.0.0.1:8090/_/**
+
+(The `/_/` at the end matters. Include it.)
+
+Sign in with the email and password you just used. If you get in, it worked.
+
+### Put them in your settings file
 
 ```
 POCKETBASE_ADMIN_EMAIL=you@yourdomain.com
-POCKETBASE_ADMIN_PASSWORD=the password you just invented
+POCKETBASE_ADMIN_PASSWORD=MyNewMadeUpPassword123
 ```
 
-Save the file.
+They must match the command **exactly**. Save the file.
 
 These two lines are how the app unlocks your database. They are also the only
 thing standing between a stranger and your CV, so keep them out of screenshots
 and never commit `.env.local`.
+
+> **Typed the password wrong?** Run the same command again with
+> `superuser upsert` instead of `superuser create`. That overwrites it.
 
 ---
 
@@ -668,6 +705,15 @@ CV_TEMPLATE_PATH=templates/master-cv.docx
 ```
 
 Five things to fill in. That is all of them.
+
+**For a longer, slower walk through each one — where it comes from, what can go
+wrong, and how to check it — see [ENV-VARS.md](./ENV-VARS.md).**
+
+> **A note on the model.** `gemini-2.5-flash` works, but it is a previous
+> generation. Newer Flash models write better. Because this is only a setting,
+> you can switch without touching any code: open
+> https://aistudio.google.com, look at the model dropdown, and put a name from
+> that list here. If the name is wrong the app says so plainly.
 
 ---
 
