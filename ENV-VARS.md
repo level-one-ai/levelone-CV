@@ -1,6 +1,8 @@
 # Getting your settings (environment variables)
 
-This guide gets you the six settings the app needs to run.
+This guide gets you the settings the app needs to run.
+
+**Four you must fill in. Two are optional.**
 
 It is written in plain English. Every step is one small action. You do not need
 to know how to code.
@@ -25,7 +27,7 @@ reason: **they are secret**. The code goes on GitHub. This file never does.
 
 ---
 
-## The six settings, at a glance
+## The settings, at a glance
 
 | Setting | Where it comes from | Hard? |
 | --- | --- | --- |
@@ -34,10 +36,11 @@ reason: **they are secret**. The code goes on GitHub. This file never does.
 | `POCKETBASE_ADMIN_PASSWORD` | You make it up | Easy |
 | `GEMINI_API_KEY` | Google AI Studio website | 5 minutes |
 | `GEMINI_MODEL` | You pick one from a list | Easy |
-| `CV_TEMPLATE_PATH` | Already correct, leave it | None |
+| `GEMINI_CV_PROMPT` | **Optional** — leave blank | None |
+| `PDF_CHROMIUM_PATH` | **Optional** — leave blank | None |
 
-Only **one** of them comes from a website. Two you invent. Three are already
-filled in for you.
+Only **one** of them comes from a website. Two you invent. The rest already
+work as they are.
 
 ---
 
@@ -66,7 +69,7 @@ cp .env.example .env.local
 Now open `.env.local` in any text editor. Notepad, TextEdit, or VS Code all
 work fine.
 
-You will see the six settings. Some have values already. Some are blank. You
+You will see the settings. Some have values already. Some are blank. You
 are going to fill in the blanks.
 
 ---
@@ -271,20 +274,114 @@ GEMINI_MODEL=the-name-you-picked
 
 ---
 
-## Step 6 — `CV_TEMPLATE_PATH`
+## Step 6 — `GEMINI_CV_PROMPT` (optional)
 
-**What it is:** where your Word CV template lives.
+**What it is:** the instructions Gemini follows when it rewrites your CV.
+
+**Leave it blank.** The app has a good one built in. This setting only exists so
+you can take over the writing style later, without touching any code.
 
 ```
-CV_TEMPLATE_PATH=templates/master-cv.docx
+GEMINI_CV_PROMPT=
 ```
 
-**Leave this exactly as it is.** It is already correct.
+### The prompt the app uses
 
-It is only here so you *could* move the file somewhere else later. You almost
-certainly never will.
+This is what Gemini is told, word for word, every time:
 
-You do still need to put your CV in that spot — that is Step 6 of `SETUP.md`.
+```text
+You tailor one specific candidate's CV and job application to one specific advert.
+
+You are rewriting five parts of a CV, and nothing else:
+1. CV HEADLINE - the line under their name. Match the advert's job title, but
+   never promote them to a seniority they have not actually held.
+2. PROFESSIONAL SUMMARY - a short paragraph built around the main skills and
+   keywords in the advert, drawn only from what the candidate has really done.
+3. CORE SKILLS - their real skills, re-ordered so the ones the advert asks for
+   by name come first. Use the advert's own wording where it genuinely matches.
+4. WORK EXPERIENCE BULLETS - the same real jobs, with the achievements that
+   matter to this employer brought to the front and reworded in their terms.
+5. FEATURED PROJECTS - the same real projects, re-ordered and re-described to
+   lead with the work closest to this role's goals.
+
+Rules you must never break:
+1. Use ONLY the work history, skills and projects given to you. If the advert
+   asks for something the candidate has not done, do not claim it - pick the
+   closest real experience and describe it honestly.
+2. Never invent employers, dates, job titles, qualifications, tools or metrics.
+   Every number you write must already appear in the candidate's history.
+3. Mirror the advert's vocabulary only where the experience is genuinely there,
+   so applicant tracking systems match without the CV becoming a lie.
+4. Write in British English, in a confident, plain, human voice. No cliches
+   like "passionate", "synergy" or "dynamic team player", and no em dashes.
+5. Every bullet shows an outcome, not a duty. Keep real numbers.
+6. Keep the CV to one page of A4: at most 4 jobs, at most 4 bullets each, at
+   most 4 projects, and at most 10 skills.
+```
+
+### If you want to change it
+
+Copy the text above, change what you want, and put it after the `=`.
+
+> **One catch.** A setting has to fit on **one line**. Replace every line break
+> with `\n`, like this:
+>
+> ```
+> GEMINI_CV_PROMPT=You tailor a CV.\nRule 1: never invent anything.\nRule 2: British English.
+> ```
+
+**You cannot break the output by changing this.** The shape of Gemini's answer
+is locked down separately in the code, so a bad prompt can only make the writing
+worse, never stop the app working.
+
+---
+
+## Step 7 — `PDF_CHROMIUM_PATH` (optional)
+
+**What it is:** which copy of Chrome turns your CV into a PDF.
+
+**Leave it blank.** The app looks for one itself, in this order:
+
+1. Any Chromium that Playwright has downloaded
+2. Google Chrome, in the normal place for your Mac, Windows or Linux machine
+3. Chromium
+4. Microsoft Edge
+
+Most people already have one of these, so nothing is needed.
+
+```
+PDF_CHROMIUM_PATH=
+```
+
+### Only if it cannot find one
+
+If you see *"Could not find a Chrome or Chromium"*, you have two choices.
+
+**Point it at a Chrome you already have:**
+
+```
+# Mac
+PDF_CHROMIUM_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+# Windows
+PDF_CHROMIUM_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
+
+# Linux
+PDF_CHROMIUM_PATH=/usr/bin/google-chrome
+```
+
+**Or install one, once:**
+
+```bash
+npx playwright install --with-deps chromium
+```
+
+That downloads about 150MB and then you never think about it again.
+
+> **Why does a CV need a web browser?** Your CV is built as a web page first,
+> then printed to PDF. Chrome is what does the printing, which is why the PDF
+> looks exactly like the design. It is the same engine as the Gotenberg service
+> people usually run in Docker for this — just without the extra service.
 
 ---
 
@@ -306,8 +403,9 @@ GEMINI_API_KEY=AIzaSyC...
 # Which AI model writes your applications
 GEMINI_MODEL=gemini-2.5-flash
 
-# Where your Word template lives
-CV_TEMPLATE_PATH=templates/master-cv.docx
+# Optional — leave both blank
+GEMINI_CV_PROMPT=
+PDF_CHROMIUM_PATH=
 ```
 
 Save the file.
@@ -324,7 +422,7 @@ npm run dev
 
 Open **http://localhost:3000** and paste any job advert in.
 
-- **It works** → all six are right. You are done.
+- **It works** → everything is right. You are done.
 - **You get a red message** → find it in the table below.
 
 | Message | What is wrong |
@@ -335,7 +433,8 @@ Open **http://localhost:3000** and paste any job advert in.
 | "GEMINI_API_KEY is not set" | It is blank, or you did not restart. |
 | "Gemini rejected the API key" | The key is wrong, or you copied only part of it. Copy it again. |
 | "Gemini has no model called..." | The `GEMINI_MODEL` name is wrong. See Step 5. |
-| "No Word template found" | Your CV is not at `templates/master-cv.docx` yet. See `SETUP.md` Step 6. |
+| "Could not find a Chrome or Chromium" | See Step 7 above. |
+| "Chromium is missing some system libraries" | Linux only. Run `npx playwright install-deps chromium`. |
 
 ---
 

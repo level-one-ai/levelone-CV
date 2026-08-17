@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { loadMasterCv } from "@/lib/cv";
-import { buildFileName, renderCv } from "@/lib/docx";
+import { loadCvTemplate, loadMasterCv, loadProfilePhoto } from "@/lib/cv";
+import { buildCvHtml, buildFileName } from "@/lib/cv-html";
 import { generateApplication } from "@/lib/gemini";
+import { renderPdf } from "@/lib/pdf";
 import {
   COLLECTIONS,
   describePocketBaseError,
@@ -11,11 +12,11 @@ import {
 } from "@/lib/pocketbase";
 import type { ApplicationRecord, GenerateResponse } from "@/lib/types";
 
-// docxtemplater, pizzip and the PocketBase file upload all need real Node
-// APIs, so this route must not run on the edge runtime.
+// Launching Chromium and uploading a file both need real Node APIs, so this
+// route must not run on the edge runtime.
 export const runtime = "nodejs";
-// Gemini plus a document render comfortably exceeds the default 10s budget on
-// serverless hosts.
+// Gemini plus a browser launch and a PDF print comfortably exceeds the default
+// 10s budget on serverless hosts.
 export const maxDuration = 120;
 
 const bodySchema = z.object({
@@ -52,8 +53,15 @@ export async function POST(request: Request) {
     // 2. Gemini maps that history onto this advert.
     const application = await generateApplication(jobDescription, cv);
 
-    // 3. The same text goes into the Word template, in memory.
-    const docx = await renderCv(application, cv);
+    // 3. The same text is poured into the HTML template and printed to PDF,
+    //    entirely in memory. The template comes from PocketBase when there is
+    //    one, so edits made in the admin UI take effect immediately.
+    const [template, photo] = await Promise.all([
+      loadCvTemplate(pb),
+      loadProfilePhoto(pb, cv.profile),
+    ]);
+    const html = buildCvHtml({ template, application, cv, photo });
+    const pdf = await renderPdf(html);
     const fileName = buildFileName(application, cv.profile.full_name);
 
     // 4. Text and document are stored together as one record, so reopening a
@@ -61,6 +69,7 @@ export async function POST(request: Request) {
     const form = new FormData();
     form.append("job_title", application.job_title);
     form.append("company", application.company);
+    form.append("cv_headline", application.cv_headline);
     form.append("job_description", jobDescription);
     form.append("tailored_intro", application.tailored_intro);
     form.append("resume_summary", application.resume_summary);
@@ -70,14 +79,16 @@ export async function POST(request: Request) {
       JSON.stringify(application.tailored_experience)
     );
     form.append(
+      "tailored_projects",
+      JSON.stringify(application.tailored_projects)
+    );
+    form.append(
       "screening_answers",
       JSON.stringify(application.screening_answers)
     );
     form.append(
-      "docx",
-      new Blob([new Uint8Array(docx)], {
-        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      }),
+      "pdf",
+      new Blob([new Uint8Array(pdf)], { type: "application/pdf" }),
       fileName
     );
 

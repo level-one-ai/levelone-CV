@@ -1,5 +1,6 @@
 import type PocketBase from "pocketbase";
 
+import { readDefaultTemplate } from "@/lib/cv-html";
 import { COLLECTIONS, describePocketBaseError } from "@/lib/pocketbase";
 import type {
   CvExperience,
@@ -128,6 +129,8 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
     links: asLinkMap(first.links),
     master_summary: String(first.master_summary ?? ""),
     skills: asSkillList(first.skills),
+    education: String(first.education ?? ""),
+    photo: String(first.photo ?? ""),
   };
 
   const experience: CvExperience[] = experienceRaw.map((r) => ({
@@ -153,6 +156,54 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
   }));
 
   return { profile, experience, skills: profile.skills, projects };
+}
+
+/**
+ * Downloads the uploaded headshot so it can be inlined into the CV as a data
+ * URI. Chromium then needs no network access at print time, and no PocketBase
+ * token ever appears in the markup.
+ *
+ * A missing or unreadable photo is not an error — the template falls back to a
+ * plain panel. Nobody should lose a job application because a JPEG went walkies.
+ */
+export async function loadProfilePhoto(
+  pb: PocketBase,
+  profile: CvProfile
+): Promise<{ data: Buffer; mime: string } | null> {
+  if (!profile.photo) return null;
+
+  try {
+    const record = await pb.collection(COLLECTIONS.profile).getOne(profile.id);
+    const token = await pb.files.getToken();
+    const url = pb.files.getURL(record, profile.photo, { token });
+
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    return {
+      data: Buffer.from(await response.arrayBuffer()),
+      mime:
+        response.headers.get("content-type")?.split(";")[0] ?? "image/jpeg",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The CV design, preferring the copy in PocketBase so edits made in the admin
+ * UI take effect, and falling back to the file shipped in the repo.
+ */
+export async function loadCvTemplate(pb: PocketBase): Promise<string> {
+  try {
+    const rows = await pb.collection(COLLECTIONS.template).getFullList();
+    const html = String(rows[0]?.html ?? "").trim();
+    if (html) return html;
+  } catch {
+    // No collection, or it is empty — fall through to the shipped default.
+  }
+
+  return readDefaultTemplate();
 }
 
 /**

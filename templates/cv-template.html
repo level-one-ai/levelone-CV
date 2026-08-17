@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<title>{{full_name}} — CV</title>
+<style>
+  /* ==================================================================
+     Level One CV — A4, print-first.
+
+     This file is the DEFAULT template. On first run it is copied into
+     the `cv_template` collection in PocketBase, and after that the
+     PocketBase copy is what gets used — edit it there.
+
+     Placeholders come in two kinds:
+       {{scalar}}       a single value, e.g. {{full_name}}
+       {{something_html}}  a block the app builds for you, e.g. the
+                           list of jobs. Move it, do not rewrite it.
+
+     Colours are the Level One palette, same as the web app.
+     ================================================================== */
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  :root {
+    --ink: #111110;        /* sidebar + headings */
+    --page: #faf9f6;       /* warm off-white page */
+    --muted: #6b6a66;      /* secondary text */
+    --line: #e8e6e0;       /* hairline rules */
+    --on-dark: #f3f1ea;    /* text on the dark sidebar */
+    --on-dark-muted: #a7a49b;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 9.6pt;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sheet {
+    display: flex;
+    width: 210mm;
+    min-height: 297mm;
+  }
+
+  /* ---------------------------- sidebar ---------------------------- */
+
+  .sidebar {
+    width: 68mm;
+    flex-shrink: 0;
+    background: var(--ink);
+    color: var(--on-dark);
+  }
+
+  .photo {
+    width: 100%;
+    height: 68mm;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(100%) contrast(108%);
+  }
+
+  /* Shown only when no photo has been uploaded, so the layout never
+     collapses into an empty gap. */
+  .photo-empty {
+    width: 100%;
+    height: 68mm;
+    background: #1c1c18;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22pt;
+    letter-spacing: 0.12em;
+    color: var(--on-dark-muted);
+  }
+
+  .sidebar-body {
+    padding: 10mm 9mm 12mm;
+  }
+
+  .sidebar h2 {
+    margin: 0 0 4mm;
+    font-size: 10.5pt;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--on-dark);
+  }
+
+  .sidebar section + section {
+    margin-top: 9mm;
+  }
+
+  .contact-item {
+    margin-bottom: 3.4mm;
+  }
+
+  .contact-label {
+    font-weight: 700;
+    font-size: 8.8pt;
+    color: var(--on-dark);
+  }
+
+  .contact-value {
+    font-size: 8.8pt;
+    color: var(--on-dark-muted);
+    word-break: break-word;
+  }
+
+  .skill-list,
+  .edu-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .skill-list li {
+    font-size: 9pt;
+    color: var(--on-dark-muted);
+    padding: 1.4mm 0;
+    border-bottom: 0.2mm solid rgba(243, 241, 234, 0.12);
+  }
+
+  .skill-list li:last-child {
+    border-bottom: 0;
+  }
+
+  .edu-list li {
+    margin-bottom: 4.5mm;
+  }
+
+  .edu-title {
+    font-weight: 700;
+    font-size: 9pt;
+    color: var(--on-dark);
+  }
+
+  .edu-meta {
+    font-size: 8.6pt;
+    color: var(--on-dark-muted);
+  }
+
+  /* ------------------------------ main ----------------------------- */
+
+  .main {
+    flex: 1;
+    min-width: 0;
+    padding: 14mm 12mm 12mm;
+  }
+
+  .name {
+    margin: 0;
+    font-size: 30pt;
+    line-height: 1.04;
+    letter-spacing: 0.06em;
+    font-weight: 300;
+    text-transform: uppercase;
+  }
+
+  .name strong {
+    display: block;
+    font-weight: 700;
+  }
+
+  .headline {
+    margin: 5mm 0 0;
+    font-size: 10pt;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .rule {
+    height: 0.3mm;
+    background: var(--line);
+    margin: 8mm 0;
+  }
+
+  .main h2 {
+    margin: 0 0 3.5mm;
+    font-size: 11pt;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .main section + section {
+    margin-top: 8mm;
+  }
+
+  .profile-text {
+    margin: 0;
+    color: #2b2a26;
+  }
+
+  .job {
+    margin-bottom: 6mm;
+    page-break-inside: avoid;
+  }
+
+  .job-role {
+    font-weight: 700;
+    font-size: 10pt;
+    margin: 0;
+  }
+
+  .job-meta {
+    margin: 0.6mm 0 2mm;
+    font-size: 8.8pt;
+    color: var(--muted);
+  }
+
+  .job ul,
+  .project ul {
+    margin: 0;
+    padding-left: 4.5mm;
+  }
+
+  .job li {
+    margin-bottom: 1.4mm;
+    color: #2b2a26;
+  }
+
+  .project {
+    margin-bottom: 5mm;
+    page-break-inside: avoid;
+  }
+
+  .project-name {
+    font-weight: 700;
+    font-size: 9.6pt;
+    margin: 0;
+  }
+
+  .project-desc {
+    margin: 0.8mm 0 0;
+    color: #2b2a26;
+  }
+
+  .project-tech {
+    margin: 0.8mm 0 0;
+    font-size: 8.6pt;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <aside class="sidebar">
+      {{photo_html}}
+
+      <div class="sidebar-body">
+        <section>
+          <h2>Contact</h2>
+          {{contact_html}}
+        </section>
+
+        <section>
+          <h2>Skills</h2>
+          {{skills_html}}
+        </section>
+
+        <section>
+          <h2>Education</h2>
+          {{education_html}}
+        </section>
+      </div>
+    </aside>
+
+    <main class="main">
+      <h1 class="name">{{first_name}}<strong>{{last_name}}</strong></h1>
+      <p class="headline">{{headline}}</p>
+
+      <div class="rule"></div>
+
+      <section>
+        <h2>Profile</h2>
+        <p class="profile-text">{{summary}}</p>
+      </section>
+
+      <section>
+        <h2>Work Experience</h2>
+        {{experience_html}}
+      </section>
+
+      <section>
+        <h2>Featured Projects</h2>
+        {{projects_html}}
+      </section>
+    </main>
+  </div>
+</body>
+</html>

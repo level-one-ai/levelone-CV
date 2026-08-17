@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   profile: "cv_profile",
   experience: "cv_experience",
   projects: "cv_projects",
+  template: "cv_template",
   applications: "applications",
 } as const;
 

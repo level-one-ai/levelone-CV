@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Builds the five collections this app needs, in your PocketBase.
+ * Builds the collections this app needs, in your PocketBase.
  *
  *   npm run setup:pocketbase
  *   npm run setup:pocketbase -- --dry-run    (show what would change, write nothing)
@@ -230,7 +230,7 @@ console.log("");
 
 if (DRY_RUN) {
   if (wouldChange === 0) {
-    console.log(`${tick} Nothing to do — all five collections are already correct.\n`);
+    console.log(`${tick} Nothing to do — every collection is already correct.\n`);
   } else {
     console.log(
       `${wouldChange} collection(s) would change. Run without --dry-run to apply.\n`
@@ -245,6 +245,31 @@ if (repaired) parts.push(`${repaired} repaired`);
 if (unchanged) parts.push(`${unchanged} already correct`);
 
 console.log(`${tick} Done — ${parts.join(", ")}.`);
+
+// ---- seed the CV design, but never overwrite an edited one ----------------
+try {
+  const existing = await pb.collection("cv_template").getFullList();
+
+  if (existing.length === 0) {
+    const html = await readFile(
+      path.join(process.cwd(), "templates", "cv-template.html"),
+      "utf8"
+    );
+    await pb.collection("cv_template").create({ name: "Level One", html });
+    console.log("");
+    console.log(`${tick} CV design loaded into cv_template.`);
+    console.log("  Edit it there any time — the app uses that copy from now on.");
+  } else {
+    // Overwriting here would silently destroy hand-made design edits, which is
+    // exactly the kind of data loss this script promises never to cause.
+    console.log("");
+    console.log(`${tick} cv_template already has a design — left untouched.`);
+  }
+} catch (err) {
+  console.log("");
+  console.log(`!  Could not load the CV design: ${describe(err, url)}`);
+  console.log("   The app falls back to templates/cv-template.html, so this is not fatal.");
+}
 
 // Skills used to live in their own collection. Point out the leftover rather
 // than deleting it — it is Dean's data and his call.
@@ -262,10 +287,11 @@ console.log("");
 console.log("Next: open the admin page and type your CV in.");
 console.log(`  ${url}/_/`);
 console.log("");
-console.log("  cv_profile     one row: your details, summary and skills line");
+console.log("  cv_profile     one row: details, summary, skills, education, photo");
 console.log("  cv_experience  one row per job");
 console.log("  cv_projects    one row per project");
 console.log("");
+console.log("  cv_template    the CV design — already filled in for you");
 console.log("  applications   leave empty — the app fills this in for you");
 console.log("");
 console.log("See SETUP.md step 5 for what to put in each field.\n");

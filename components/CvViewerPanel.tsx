@@ -2,16 +2,15 @@
 
 import { motion } from "framer-motion";
 import { Download, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Split-screen document viewer.
  *
- * The .docx is rendered in the browser by docx-preview, straight from the
- * bytes our own /api/applications/[id]/file route returns. No Google Drive, no
- * conversion step, and nothing about the CV leaves the machines you control.
- * docx-preview touches `window` at import time, so it is loaded lazily inside
- * the effect rather than at module scope.
+ * The PDF is served by our own /api/applications/[id]/file route and shown in
+ * the browser's built-in PDF viewer. Nothing is converted or re-rendered, so
+ * what you see here is exactly the file an employer receives — which was the
+ * whole point of moving from Word to PDF.
  */
 export default function CvViewerPanel({
   docUrl,
@@ -22,56 +21,7 @@ export default function CvViewerPanel({
   title: string;
   onClose: () => void;
 }) {
-  const container = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    const target = container.current;
-    if (!target) return;
-
-    setStatus("loading");
-
-    (async () => {
-      try {
-        const response = await fetch(docUrl);
-        if (!response.ok) {
-          const detail = await response
-            .json()
-            .then((body) => body.error as string)
-            .catch(() => `Server responded ${response.status}.`);
-          throw new Error(detail);
-        }
-
-        const blob = await response.blob();
-        const { renderAsync } = await import("docx-preview");
-        if (cancelled) return;
-
-        target.innerHTML = "";
-        await renderAsync(blob, target, undefined, {
-          className: "docx",
-          inWrapper: true,
-          ignoreWidth: true,
-          ignoreHeight: true,
-          breakPages: true,
-          experimental: true,
-        });
-
-        if (!cancelled) setStatus("ready");
-      } catch (err) {
-        if (cancelled) return;
-        setMessage(
-          err instanceof Error ? err.message : "Could not open the document."
-        );
-        setStatus("error");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [docUrl]);
 
   // Escape closes the panel, matching every other slide-over on the web.
   useEffect(() => {
@@ -81,6 +31,26 @@ export default function CvViewerPanel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // An <iframe> fires `load` for a failed response too, so check the document
+  // is really there before deciding the preview worked.
+  useEffect(() => {
+    let cancelled = false;
+    setStatus("loading");
+
+    fetch(docUrl, { method: "HEAD" })
+      .then((response) => {
+        if (cancelled) return;
+        setStatus(response.ok ? "ready" : "error");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [docUrl]);
 
   return (
     <motion.aside
@@ -105,7 +75,7 @@ export default function CvViewerPanel({
             className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white/70 px-3 py-1.5 text-fluid-xs font-medium text-foreground transition-colors hover:border-foreground/40"
           >
             <Download className="h-3.5 w-3.5" aria-hidden />
-            Download
+            Download PDF
           </a>
           <button
             type="button"
@@ -118,34 +88,35 @@ export default function CvViewerPanel({
         </div>
       </header>
 
-      <div className="custom-scrollbar relative flex-1 overflow-y-auto p-4">
+      <div className="relative flex-1 overflow-hidden p-3">
         {status === "loading" ? (
-          <div className="space-y-3" aria-hidden>
-            <div className="h-64 animate-pulse rounded-2xl border border-line bg-white/60" />
-            <div className="h-40 animate-pulse rounded-2xl border border-line bg-white/40" />
-          </div>
+          <div
+            className="h-full animate-pulse rounded-2xl border border-line bg-white/60"
+            aria-hidden
+          />
         ) : null}
 
         {status === "error" ? (
           <div className="card">
             <p className="text-fluid-sm font-semibold text-foreground">
-              Could not display the CV
+              Could not open the CV
             </p>
-            <p className="mt-2 text-fluid-sm text-muted">{message}</p>
-            <a
-              href={`${docUrl}?download=1`}
-              className="btn-ghost mt-4 !px-5 !py-2"
-            >
-              Download it instead
+            <p className="mt-2 text-fluid-sm text-muted">
+              The document could not be loaded. Try downloading it instead.
+            </p>
+            <a href={`${docUrl}?download=1`} className="btn-ghost mt-4 !px-5 !py-2">
+              Download PDF
             </a>
           </div>
         ) : null}
 
-        <div
-          ref={container}
-          className="docx-viewport"
-          style={{ display: status === "ready" ? "block" : "none" }}
-        />
+        {status === "ready" ? (
+          <iframe
+            src={docUrl}
+            title="Your updated CV"
+            className="h-full w-full rounded-2xl border border-line bg-white"
+          />
+        ) : null}
       </div>
     </motion.aside>
   );

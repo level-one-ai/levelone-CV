@@ -12,6 +12,10 @@ export interface CvProfile {
   master_summary: string;
   /** Parsed from one comma-separated line in PocketBase. */
   skills: string[];
+  /** One qualification per line: "Degree | School | Dates". */
+  education: string;
+  /** Stored filename of the uploaded headshot, empty if none. */
+  photo: string;
 }
 
 export interface CvExperience {
@@ -57,14 +61,25 @@ export interface ScreeningAnswer {
   answer: string;
 }
 
+/** A project as rewritten for this advert. */
+export interface TailoredProject {
+  name: string;
+  description: string;
+  /** A single line, e.g. "Next.js, Gemini, PocketBase". */
+  tech: string;
+}
+
 /** The structured object Gemini returns, matching the response schema. */
 export interface GeneratedApplication {
   job_title: string;
   company: string;
+  /** The line under your name on the CV, matched to the advert's job title. */
+  cv_headline: string;
   tailored_intro: string;
   resume_summary: string;
   skills_matched: string[];
   tailored_experience: TailoredExperience[];
+  tailored_projects: TailoredProject[];
   screening_answers: ScreeningAnswer[];
 }
 
@@ -72,8 +87,8 @@ export interface GeneratedApplication {
 export interface ApplicationRecord extends GeneratedApplication {
   id: string;
   job_description: string;
-  /** Stored filename of the generated .docx, empty until it is attached. */
-  docx: string;
+  /** Stored filename of the generated PDF, empty until it is attached. */
+  pdf: string;
   created: string;
   updated: string;
 }
@@ -89,6 +104,6 @@ export interface ApplicationSummary {
 /** What POST /api/generate-application answers with. */
 export interface GenerateResponse {
   application: ApplicationRecord;
-  /** Same-origin URL the viewer fetches the .docx bytes from. */
+  /** Same-origin URL the viewer loads the PDF from. */
   docUrl: string;
 }

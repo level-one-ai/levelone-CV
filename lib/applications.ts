@@ -4,6 +4,7 @@ import type {
   ApplicationRecord,
   ScreeningAnswer,
   TailoredExperience,
+  TailoredProject,
 } from "@/lib/types";
 
 /**
@@ -29,6 +30,7 @@ export function toApplicationRecord(record: RecordModel): ApplicationRecord {
     id: record.id,
     job_title: String(record.job_title ?? "Untitled role"),
     company: String(record.company ?? ""),
+    cv_headline: String(record.cv_headline ?? ""),
     job_description: String(record.job_description ?? ""),
     tailored_intro: String(record.tailored_intro ?? ""),
     resume_summary: String(record.resume_summary ?? ""),
@@ -37,11 +39,15 @@ export function toApplicationRecord(record: RecordModel): ApplicationRecord {
       record.tailored_experience,
       []
     ),
+    tailored_projects: parseJson<TailoredProject[]>(
+      record.tailored_projects,
+      []
+    ),
     screening_answers: parseJson<ScreeningAnswer[]>(
       record.screening_answers,
       []
     ),
-    docx: String(record.docx ?? ""),
+    pdf: String(record.pdf ?? ""),
     created: String(record.created ?? ""),
     updated: String(record.updated ?? ""),
   };

@@ -1,14 +1,17 @@
 # Level One — CV & Application Generator
 
-Paste a job advert. Get a tailored cover note, screening answers, and a Word CV
-rewritten for that exact role.
+Paste a job advert. Get a tailored cover note, screening answers, and a designed
+PDF CV rewritten for that exact role.
 
 **New here? Read [SETUP.md](./SETUP.md).** It walks through every step in plain
 English, from installing Node to typing in your CV.
 
 **Just need the keys and settings? Read [ENV-VARS.md](./ENV-VARS.md).** It
-covers the six environment variables on their own — where each one comes from,
-what breaks when it is wrong, and how to check it.
+covers the environment variables on their own — where each one comes from, what
+breaks when it is wrong, and how to check it.
+
+**Need the database layout? Read [COLLECTIONS.md](./COLLECTIONS.md).** Every
+collection, every field, and an example of what to type in each one.
 
 ---
 
@@ -16,21 +19,29 @@ what breaks when it is wrong, and how to check it.
 
 ```
 Paste advert  ─▶  POST /api/generate-application
-                    1. PocketBase  → your master CV, skills and projects
-                    2. Gemini      → structured JSON, tailored to the advert
-                    3. docxtemplater → fills templates/master-cv.docx in memory
-                    4. PocketBase  → saves the text + the .docx together
-                    5. returns the text and a same-origin document URL
+                    1. PocketBase → master CV, projects and your photo
+                    2. Gemini     → structured JSON, tailored to the advert
+                    3. cv-html.ts → fills the HTML template's {{placeholders}}
+                    4. pdf.ts     → headless Chromium prints an A4 PDF, in memory
+                    5. PocketBase → saves the text + the .pdf together
+                    6. returns the text and a same-origin document URL
 ```
 
-No file ever leaves the machines you control. The generated `.docx` is stored
-in PocketBase's `docx` file field and streamed back through
-`/api/applications/[id]/file`, which is what the split-screen viewer renders.
+No file ever leaves the machines you control, and there is no PDF service. The
+usual approach here is a Gotenberg container reached over HTTP; Gotenberg is a
+headless Chromium with an API in front of it, so this app drives Chromium
+directly instead — same engine, no container, no network hop. The generated PDF
+is stored in PocketBase's `pdf` file field and streamed back through
+`/api/applications/[id]/file`, which the split-screen viewer shows in an iframe.
+
+Chromium is found automatically: Playwright's browsers first, then the usual
+Google Chrome, Chromium and Edge locations on macOS, Windows and Linux. Set
+`PDF_CHROMIUM_PATH` to override.
 
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS ·
-PocketBase · `@google/genai` · `docxtemplater` + `pizzip` · `docx-preview` ·
+PocketBase · `@google/genai` · `playwright-core` driving headless Chromium ·
 `@react-three/fiber` for the background · framer-motion
 
 ## Layout
@@ -39,12 +50,13 @@ PocketBase · `@google/genai` · `docxtemplater` + `pizzip` · `docx-preview` ·
 | --- | --- |
 | `app/page.tsx` | The whole client shell — sidebar, composer, output, viewer |
 | `app/api/generate-application/route.ts` | The generation chain |
-| `app/api/applications/*` | List, read, delete, and stream the `.docx` |
+| `app/api/applications/*` | List, read, delete, and stream the PDF |
 | `lib/cv.ts` | Reads the master CV and flattens it for the prompt |
 | `lib/gemini.ts` | The prompt, the response schema, the error messages |
-| `lib/docx.ts` | Template rendering and the tag list |
+| `lib/cv-html.ts` | Fills the CV template's placeholders |
+| `lib/pdf.ts` | Prints the HTML to PDF with headless Chromium |
 | `components/` | Sidebar, composer, loader, cards, document viewer |
-| `templates/` | Your master `.docx` lives here — see `templates/README.md` |
+| `templates/cv-template.html` | The default CV design, seeded into PocketBase |
 
 ## Running it
 
@@ -52,7 +64,7 @@ PocketBase · `@google/genai` · `docxtemplater` + `pizzip` · `docx-preview` ·
 npm install
 cp .env.example .env.local     # then fill it in — see ENV-VARS.md
 ./pocketbase serve             # in one terminal
-npm run setup:pocketbase       # build the four collections, once
+npm run setup:pocketbase       # build the five collections, once
 npm run dev                    # in another terminal
 ```
 
@@ -61,9 +73,8 @@ Then open http://localhost:3000.
 ## Handy commands
 
 ```bash
-npm run setup:pocketbase             # build the four collections
+npm run setup:pocketbase             # build the five collections
 npm run setup:pocketbase -- --dry-run # ...or just report what's missing
-npm run check:template               # list the tags in templates/master-cv.docx
 npm run build                        # production build
 ```
 
@@ -76,8 +87,8 @@ for what the collections must contain.
 ## How applications are stored
 
 One generation writes **one record** to the `applications` collection — the
-sidebar is a list of past results, not a resumable conversation. The eight text
-and JSON fields plus the `.docx` go up in a single `create()` call
+sidebar is a list of past results, not a resumable conversation. The text
+and JSON fields plus the `.pdf` go up in a single `create()` call
 (`app/api/generate-application/route.ts`), which is why reopening an entry
 restores both the cards and the document.
 
@@ -93,7 +104,11 @@ separately from `/api/applications/[id]/file`.
   access happens server-side with the superuser login in `.env.local`; nothing
   in `components/` touches PocketBase. The login is a PocketBase-only account
   created in its admin UI — see SETUP.md step 3.
-- The `.docx` preview is a faithful in-browser render, not a pixel-perfect copy
-  of Word. The Download button always gives you the exact file.
-- `templates/master-cv.docx` is deliberately not committed — it is your
-  personal CV. Drop your own copy in before the first run.
+- The viewer shows the real PDF in an iframe, so the preview and the downloaded
+  file are the same bytes.
+- The CV design is seeded into the `cv_template` collection on first setup and
+  read from there afterwards, so edits in the PocketBase admin UI take effect
+  immediately. `setup:pocketbase` never overwrites an edited design.
+- Gemini's system prompt can be replaced wholesale with `GEMINI_CV_PROMPT`; the
+  response schema is enforced separately, so a custom prompt cannot break the
+  output shape.

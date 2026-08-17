@@ -21,5 +21,3 @@ tsconfig.tsbuildinfo
 /pb_data
 /pb_migrations
 
-# Your personal CV template — drop it in locally, keep it out of git
-templates/master-cv.docx

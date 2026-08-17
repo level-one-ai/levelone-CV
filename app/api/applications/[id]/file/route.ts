@@ -9,17 +9,16 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DOCX_MIME =
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const PDF_MIME = "application/pdf";
 
 /**
- * Streams the stored .docx back to the browser from our own origin.
+ * Streams the stored PDF back to the browser from our own origin.
  *
- * The split-screen viewer renders the document client-side, which means it
- * needs the raw bytes — but handing the browser a PocketBase URL would either
- * expose the superuser session or fail outright on a protected file field.
- * Fetching here keeps every PocketBase credential on the server, and gives the
- * viewer a same-origin URL that no CORS rule can block.
+ * The split-screen viewer shows the document in an iframe, which means it needs
+ * a URL it is allowed to load — but handing the browser a PocketBase URL would
+ * either expose the superuser session or fail outright on a protected file
+ * field. Fetching here keeps every PocketBase credential on the server, and
+ * gives the viewer a same-origin URL that no CORS rule can block.
  */
 export async function GET(
   request: Request,
@@ -32,7 +31,7 @@ export async function GET(
   try {
     const pb = await superuserClient();
     const record = await pb.collection(COLLECTIONS.applications).getOne(id);
-    const fileName = String(record.docx ?? "");
+    const fileName = String(record.pdf ?? "");
 
     if (!fileName) {
       return NextResponse.json(
@@ -58,7 +57,7 @@ export async function GET(
 
     return new NextResponse(await upstream.arrayBuffer(), {
       headers: {
-        "Content-Type": DOCX_MIME,
+        "Content-Type": PDF_MIME,
         "Content-Disposition": `${asDownload ? "attachment" : "inline"}; filename="${fileName}"`,
         // The bytes never change once written, but the record can be deleted,
         // so keep it private and short.

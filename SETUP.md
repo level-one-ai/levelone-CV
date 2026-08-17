@@ -5,7 +5,7 @@ This guide sets up your CV and job application generator.
 It is written in plain English. Every step is one small action. If you do them
 in order, it will work. You do not need to know how to code.
 
-**Time needed:** about 45 minutes the first time.
+**Time needed:** about 40 minutes the first time.
 
 ---
 
@@ -17,7 +17,7 @@ later you get:
 - a cover note you can copy
 - a summary for your CV
 - answers to the screening questions
-- a Word CV, rewritten for that exact job
+- a designed PDF CV, rewritten for that exact job
 
 Everything is saved so you can look at old applications later.
 
@@ -247,11 +247,11 @@ and never commit `.env.local`.
 
 ---
 
-## Step 4 — Build the four tables
+## Step 4 — Build the five tables
 
-Your database needs four tables. PocketBase calls them **collections**.
+Your database needs five tables. PocketBase calls them **collections**.
 
-**One command builds all four for you.** Make sure PocketBase is running, then
+**One command builds all five for you.** Make sure PocketBase is running, then
 in your project folder type:
 
 ```bash
@@ -261,15 +261,24 @@ npm run setup:pocketbase
 You should see:
 
 ```
-  ✓ cv_profile      created (8 fields)
+  ✓ cv_profile      created (10 fields)
   ✓ cv_experience   created (7 fields)
   ✓ cv_projects     created (7 fields)
-  ✓ applications    created (11 fields)
+  ✓ cv_template     created (2 fields)
+  ✓ applications    created (13 fields)
 
-✓ Done — 4 created.
+✓ Done — 5 created.
+
+✓ CV design loaded into cv_template.
 ```
 
+That last line matters: your CV design has been loaded into the database. You
+never have to build it, and you can edit it later if you want to.
+
 That is Step 4 finished. Skip ahead to Step 5.
+
+> **Want every field explained, with an example of what to type in each one?**
+> See **[COLLECTIONS.md](./COLLECTIONS.md)**.
 
 > **Want to look before it touches anything?** Add `-- --dry-run`:
 >
@@ -287,140 +296,23 @@ That is Step 4 finished. Skip ahead to Step 5.
 
 ---
 
-### What it just built (and how to build it by hand)
+### What it just built
 
-You do not need to read this section if the command worked. It is here as a
-reference for checking a table, or for building one by hand if you prefer.
+Full details of every collection, every field, and an example of what to type in
+each one live in **[COLLECTIONS.md](./COLLECTIONS.md)**. The short version:
 
-To make a collection by hand:
-
-1. Click **New collection** in the left sidebar
-2. Choose **Base** (not Auth, not View)
-3. Type the name exactly as written below — lowercase, with underscores
-4. Click **New field** once for each field in the table below
-5. Pick the **Type** from the dropdown, then type the **Name**
-6. Click **Create**
-
-**Spelling matters.** `cv_profile` works. `CV_Profile` does not.
+| Collection | What it holds | Who fills it in |
+| --- | --- | --- |
+| `cv_profile` | You: contact details, summary, skills, education, photo | **You**, one row |
+| `cv_experience` | Your jobs | **You**, one row per job |
+| `cv_projects` | Your projects | **You**, one row per project |
+| `cv_template` | The CV design, as HTML | Done for you |
+| `applications` | Every CV the app makes | The app |
 
 **Leave the API rules alone.** By default PocketBase locks every collection so
 only the owner can read it. That is exactly what you want. Your CV has your
 phone number and address in it, and this app talks to the database from the
 server side using the login from Step 3.
-
-### Collection 1: `cv_profile`
-
-This is you. It holds one row only.
-
-| Field name | Type |
-| --- | --- |
-| `full_name` | Plain text |
-| `headline` | Plain text |
-| `email` | Plain text |
-| `phone` | Plain text |
-| `location` | Plain text |
-| `links` | JSON |
-| `master_summary` | Plain text |
-| `skills` | Plain text — set **Max length** to `5000` |
-
-### Collection 2: `cv_experience`
-
-One row per job you have had.
-
-| Field name | Type |
-| --- | --- |
-| `company` | Plain text |
-| `role` | Plain text |
-| `start_date` | Plain text |
-| `end_date` | Plain text |
-| `location` | Plain text |
-| `bullets` | JSON |
-| `order` | Number |
-
-### Collection 3: `cv_projects`
-
-One row per project you are proud of.
-
-| Field name | Type |
-| --- | --- |
-| `name` | Plain text |
-| `role` | Plain text |
-| `description` | Plain text |
-| `tech` | JSON |
-| `outcome` | Plain text |
-| `link` | Plain text |
-| `order` | Number |
-
-### Collection 4: `applications`
-
-You never type in this one. The app fills it in every time you generate an
-application.
-
-| Field name | Type |
-| --- | --- |
-| `job_title` | Plain text |
-| `company` | Plain text |
-| `job_description` | Plain text |
-| `tailored_intro` | Plain text |
-| `resume_summary` | Plain text |
-| `skills_matched` | JSON |
-| `tailored_experience` | JSON |
-| `screening_answers` | JSON |
-| `docx` | File |
-| `created` | Autodate |
-| `updated` | Autodate |
-
-Three of these need extra care. **The command sets all three for you** — this
-matters only if you are building by hand.
-
-- **`created`** — this is what puts your applications in date order in the
-  sidebar. Choose **Autodate** as the type, name it `created`, and in
-  **Options** tick **Create**. Do the same for `updated`, ticking both
-  **Create** and **Update**. Do not skip this one: without it the sidebar
-  cannot load at all.
-- **`job_description`** — click the field, open **Options**, and set
-  **Max length** to `30000`. Job adverts are long, and the default limit will
-  cut them off.
-- **`docx`** — this is where your generated CV file is stored. Click the field
-  and open **Options**. Set **Max file size** to at least `5MB`, leave
-  **Max files** at 1, and tick **Protected** so the file cannot be downloaded
-  without going through the app.
-
-> **Not sure you got it right?** Run `npm run setup:pocketbase -- --dry-run`.
-> It tells you which fields are missing without changing anything.
-
-That is the storage sorted. Your CV documents live in PocketBase, right beside
-the text that goes with them.
-
----
-
-## How your applications get saved
-
-You do not have to do anything for this to work. It is worth understanding
-though, because it explains what the sidebar is showing you.
-
-**Every time you generate an application, the app saves one row** in the
-`applications` collection. One job advert in, one row out. It is not a
-conversation you can add to later — the sidebar is a list of past results, not
-a list of chats you can carry on.
-
-**The text and the Word file are saved together in that same row.** That is why
-clicking an old application in the sidebar brings back both halves of the
-screen at once: the cards on the right, and the CV in the sliding panel.
-
-**The sidebar only reads four things** from each row — the id, the job title,
-the company, and the date it was made. It does not load the job advert or the
-cover note until you click one. That is what keeps it quick even after a
-hundred applications.
-
-**The date is what puts them in order.** It is also what sorts them into
-"Today", "Yesterday" and "Previous 7 days". This is the `created` field from
-the table above — if it is missing, the sidebar cannot work, which is why it
-gets its own warning up there.
-
-**Deleting removes both parts.** Hover over an application in the sidebar and
-click the bin icon. The row and its Word file are both removed. There is no
-undo, so be sure.
 
 ---
 
@@ -471,6 +363,19 @@ skills are equally relevant, the AI tends to follow your order.
 > **New lines work too.** If you would rather put one skill per line, do that
 > instead. The app accepts either.
 
+- `education` — **one qualification per line**, with three parts split by the
+  `|` character:
+
+```
+M.Sc. Artificial Intelligence | University of Glasgow | 2018 - 2019
+B.Sc. Computer Science | University of Strathclyde | 2014 - 2018
+```
+
+The order is **Degree | School | Dates**. This is printed on your CV exactly as
+you type it — the AI never rewrites your education.
+
+- `photo` — leave this for now. It is Step 6.
+
 ### Fill in `cv_experience` (one record per job)
 
 - `company`, `role`, `location` — as they were
@@ -500,90 +405,47 @@ served, percent improved. Put them in.
 
 ---
 
-## Step 6 — Get your CV out of Google Docs
+## Step 6 — Add your photo
 
-Your master CV is in Google Docs. The app needs it as a Word file.
+Your CV design has a photo panel down the left-hand side.
 
-1. Open your CV in Google Docs
-2. Click **File** in the top menu
-3. Hover over **Download**
-4. Click **Microsoft Word (.docx)**
-5. It saves to your Downloads folder
-6. Find that file, and move it into the **`templates`** folder inside this
-   project
-7. Rename it to exactly **`master-cv.docx`**
+1. In the PocketBase admin page, open **cv_profile**
+2. Click your one record
+3. Find the **photo** field and click **Upload file**
+4. Pick your headshot
+5. Click **Save**
 
-The path should end up looking like this:
+Tips:
 
-```
-levelone-CV/templates/master-cv.docx
-```
+- A **square** picture works best. It gets cropped to a square.
+- It prints in **black and white**, to match the design.
+- Keep it under 5MB. `.jpg`, `.png` and `.webp` all work.
 
-That is your template. The app reads it and makes a copy. Your original is
-never changed.
+**No photo? That is fine.** The CV still works — the panel just shows a plain
+Level One block instead.
 
 ---
 
-## Step 7 — Add the blanks to your template
+## Step 7 — The CV design (nothing to do)
 
-Right now your template is just your old CV. You need to tell the app where to
-write the new text.
+There is no step here. Your CV design was loaded into the `cv_template`
+collection back in Step 4.
 
-You do that with **tags** — words in curly brackets.
+It is a page of HTML. If you ever want to change a colour, move a section, or
+make the photo panel taller, open **cv_template** in the admin page and edit the
+`html` field. The app picks up your change on the very next CV.
 
-Open `templates/master-cv.docx` in Microsoft Word (or LibreOffice, or Pages).
+Two things to know before you edit it:
 
-Find your summary paragraph. Delete it. In its place, type:
+- **Your edits are safe.** `npm run setup:pocketbase` will never overwrite a
+  design that is already there.
+- **To start over**, delete the row and run `npm run setup:pocketbase` again.
+  The original design comes back.
 
-```
-{resume_summary}
-```
-
-Find your work history section. Delete the job entries. In their place, type:
-
-```
-{#tailored_experience}
-{role}, {company}
-{dates}
-{#bullets}
-• {.}
-{/bullets}
-
-{/tailored_experience}
-```
-
-That looks strange, but it is simple:
-
-- `{#tailored_experience}` means **start of the job list**
-- `{/tailored_experience}` means **end of the job list**
-- Everything between them is repeated once for every job
-- `{#bullets}` and `{/bullets}` do the same for the bullet points inside a job
-- `{.}` means **this bullet's text**
-
-At the top of your CV, replace your name and contact line with:
-
-```
-{full_name}
-{headline}
-{email}  |  {phone}  |  {location}
-```
-
-Style all of it however you like. Bold, colours, fonts, columns — the app keeps
-your formatting exactly. It only swaps out the words in curly brackets.
-
-**The full list of tags is in `templates/README.md`.**
-
-> **Warning about Word.** If you type a tag slowly, Word sometimes chops it
-> into hidden pieces and the app can no longer see it. If a tag does not work,
-> delete the whole line and retype it in one go without pausing.
-
-Save the file. Then check your work — in your terminal, type:
-
-```bash
-npm run check:template
-```
-
-It lists the tags it found. If something is spelled wrong, it says so.
+The design has `{{placeholders}}` where your details get dropped in. Some are a
+single value like `{{full_name}}`. Others, like `{{experience_html}}`, are whole
+blocks the app builds for you — you can move those around, but do not try to
+write inside them.
 
 ---
 
@@ -592,9 +454,9 @@ It lists the tags it found. If something is spelled wrong, it says so.
 You should now have:
 
 - PocketBase running in one terminal window
-- Your `.env.local` filled in with three values
+- Your `.env.local` filled in
 - Your CV typed into the database
-- `templates/master-cv.docx` with tags in it
+- Your photo uploaded
 
 Open a **second** terminal window, go to the project folder, and type:
 
@@ -622,8 +484,20 @@ Each card has a **Copy** button in the corner. Click it, then paste straight
 into the job application form.
 
 At the bottom is a button that says **View updated CV**. Click it. A panel
-slides in from the left with your new CV in it. There is a **Download** button
-in the corner of that panel to save the Word file.
+slides in from the left showing your new CV as a **PDF**, exactly as an employer
+will see it. There is a **Download PDF** button in the corner of that panel —
+that is the file you upload to the job application.
+
+**What the AI changed on the CV.** Five things, every time:
+
+1. **The job title** under your name, matched to the role
+2. **The profile paragraph**, rewritten around the advert's keywords
+3. **Your skills**, re-ordered so the ones they asked for come first
+4. **Your work bullets**, rewritten to lead with what this employer cares about
+5. **Your projects**, re-ordered and re-described to match the role
+
+Everything else — your name, contact details, education, photo — stays exactly
+as you wrote it. The AI is not allowed to invent employers, dates or numbers.
 
 Every application you generate appears in the sidebar on the left. Click any
 one of them to open it again — the text and the CV both come back.
@@ -642,10 +516,10 @@ The app tries to tell you exactly what is wrong. Here is what the messages mean.
 | "GEMINI_API_KEY is not set" | You did not paste your key into `.env.local`, or you did not restart the app after pasting it. |
 | "Gemini rejected the API key" | The key is wrong or has been deleted. Make a new one at https://aistudio.google.com/apikey. |
 | "Gemini is rate limiting this key" | You have made too many requests too fast. Wait a minute. |
-| "No Word template found" | `templates/master-cv.docx` is missing, or the name is spelled differently. Check Step 6. |
-| "The Word template has broken tags" | Word split a tag into pieces. Delete that whole line in Word and retype it in one go. |
+| "Could not find a Chrome or Chromium" | The app makes your PDF using Chrome. Install Google Chrome, or set `PDF_CHROMIUM_PATH` in `.env.local` to point at one you have. |
+| "Chromium is missing some system libraries" | On Linux only. Run `npx playwright install-deps chromium`. |
 | "No record found in the cv_profile collection" | You have not added your details yet. Go back to Step 5. |
-| The CV panel says "Could not display the CV" | Click **Download it instead**. The file is fine — only the preview failed. |
+| The CV panel says "Could not open the CV" | Click **Download PDF** instead. The file is fine — only the preview failed. |
 
 **A rule that fixes most problems:** every time you change `.env.local`, you
 must stop the app and start it again. Press **Ctrl + C** in the terminal, then
@@ -739,11 +613,13 @@ GEMINI_API_KEY=
 # Which AI model to use
 GEMINI_MODEL=gemini-2.5-flash
 
-# Where your Word template lives
-CV_TEMPLATE_PATH=templates/master-cv.docx
+# Optional. Leave both blank unless you need them.
+GEMINI_CV_PROMPT=
+PDF_CHROMIUM_PATH=
 ```
 
-Five things to fill in. That is all of them.
+**Five things to fill in.** The last two are optional and have sensible
+defaults — see [ENV-VARS.md](./ENV-VARS.md) for what they do.
 
 **For a longer, slower walk through each one — where it comes from, what can go
 wrong, and how to check it — see [ENV-VARS.md](./ENV-VARS.md).**
@@ -768,16 +644,21 @@ You asked to keep the files closer to home, so we did.
 
 **Where your files actually are now:**
 
-- Your **master template** is a file in this project, at
-  `templates/master-cv.docx`
-- Your **generated CVs** are stored in PocketBase, in the `docx` field of the
+- Your **CV design** lives in PocketBase, in the `cv_template` collection
+- Your **generated CVs** are stored in PocketBase too, in the `pdf` field of the
   `applications` collection. On disk they sit inside PocketBase's `pb_data`
   folder
-- The **split-screen viewer** reads the Word file directly in your browser. No
-  upload, no conversion, no third party
+- Your **PDFs are made on your own machine**, by the same Chrome engine that
+  draws web pages. Nothing is uploaded anywhere to be converted
 
 So there is no Google Cloud console, no service account, and no JSON key file
 to look after. The only Google thing left is the Gemini API key, and that is
 needed because Gemini is the AI doing the writing.
+
+**And no PDF service either.** A common way to do this is to run a container
+called Gotenberg on a server and send your CV to it over the internet. Gotenberg
+is really just a headless Chrome with an API bolted on the front, so this app
+skips the middle step and drives Chrome directly. Same engine, same result, one
+less thing to run and one less place your CV has to travel to.
 
 Backing all of this up is one folder — see **Keeping your data private** above.

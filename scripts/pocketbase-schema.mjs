@@ -41,6 +41,19 @@ export const COLLECTIONS = [
       // be a collection of its own — 30 records of four fields each, for data
       // that reaches the prompt as a flat list either way.
       text("skills", { max: 5000 }),
+      // One qualification per line: "Degree | School | Dates". Never tailored
+      // by Gemini, so it does not need a collection of its own.
+      text("education", { max: 5000 }),
+      // Your headshot. Inlined into the CV as a data URI at print time, so
+      // Chromium never has to fetch it.
+      {
+        name: "photo",
+        type: "file",
+        maxSelect: 1,
+        maxSize: 5242880,
+        mimeTypes: ["image/jpeg", "image/png", "image/webp"],
+        protected: true,
+      },
     ],
   },
   {
@@ -72,11 +85,22 @@ export const COLLECTIONS = [
     ],
   },
   {
+    name: "cv_template",
+    note: "The CV design, as HTML. One row, seeded on first setup.",
+    fields: [
+      text("name"),
+      // The whole template. Generous limit: a designed CV with inline CSS runs
+      // to several thousand characters and must never be silently truncated.
+      text("html", { max: 200000 }),
+    ],
+  },
+  {
     name: "applications",
     note: "Every generated application, and the CV document that goes with it.",
     fields: [
       text("job_title"),
       text("company"),
+      text("cv_headline"),
       // Job adverts are long. PocketBase's default text limit truncates real
       // ones, which is why this is set explicitly.
       text("job_description", { max: 30000 }),
@@ -84,12 +108,13 @@ export const COLLECTIONS = [
       text("resume_summary"),
       json("skills_matched"),
       json("tailored_experience"),
+      json("tailored_projects"),
       json("screening_answers"),
       {
-        // The generated .docx. Protected means it cannot be fetched without a
+        // The generated PDF. Protected means it cannot be fetched without a
         // token; app/api/applications/[id]/file/route.ts mints one per request
         // via pb.files.getToken(), so this stays private without extra work.
-        name: "docx",
+        name: "pdf",
         type: "file",
         maxSelect: 1,
         maxSize: 5242880,

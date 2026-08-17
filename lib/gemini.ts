@@ -18,6 +18,11 @@ const responseSchema = {
       type: Type.STRING,
       description: "The job title exactly as written in the advert.",
     },
+    cv_headline: {
+      type: Type.STRING,
+      description:
+        "The line printed under the candidate's name on the CV. Match the advert's job title, but never claim a seniority the candidate has not held. 2-5 words, title case.",
+    },
     company: {
       type: Type.STRING,
       description:
@@ -63,6 +68,29 @@ const responseSchema = {
         propertyOrdering: ["company", "role", "dates", "bullets"],
       },
     },
+    tailored_projects: {
+      type: Type.ARRAY,
+      description:
+        "The candidate's real projects, re-ordered so the ones closest to this advert come first, and re-described to lead with what this employer cares about. Never invent a project. Include at most 4.",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          description: {
+            type: Type.STRING,
+            description:
+              "One or two sentences, leading with the outcome that matters to this advert.",
+          },
+          tech: {
+            type: Type.STRING,
+            description:
+              "The tools used, comma separated on one line, e.g. 'Next.js, Gemini, PocketBase'.",
+          },
+        },
+        required: ["name", "description", "tech"],
+        propertyOrdering: ["name", "description", "tech"],
+      },
+    },
     screening_answers: {
       type: Type.ARRAY,
       description:
@@ -84,35 +112,61 @@ const responseSchema = {
   required: [
     "job_title",
     "company",
+    "cv_headline",
     "tailored_intro",
     "resume_summary",
     "skills_matched",
     "tailored_experience",
+    "tailored_projects",
     "screening_answers",
   ],
   propertyOrdering: [
     "job_title",
     "company",
+    "cv_headline",
     "tailored_intro",
     "resume_summary",
     "skills_matched",
     "tailored_experience",
+    "tailored_projects",
     "screening_answers",
   ],
 };
 
-const systemInstruction = `You write job applications for one specific candidate.
+/**
+ * The instruction Gemini follows. Override it with GEMINI_CV_PROMPT in
+ * .env.local to retune the writing without touching code — the response schema
+ * is enforced separately, so a custom prompt cannot break the output shape.
+ */
+export const DEFAULT_CV_PROMPT = `You tailor one specific candidate's CV and job application to one specific advert.
+
+You are rewriting five parts of a CV, and nothing else:
+1. CV HEADLINE — the line under their name. Match the advert's job title, but
+   never promote them to a seniority they have not actually held.
+2. PROFESSIONAL SUMMARY — a short paragraph built around the main skills and
+   keywords in the advert, drawn only from what the candidate has really done.
+3. CORE SKILLS — their real skills, re-ordered so the ones the advert asks for
+   by name come first. Use the advert's own wording where it genuinely matches.
+4. WORK EXPERIENCE BULLETS — the same real jobs, with the achievements that
+   matter to this employer brought to the front and reworded in their terms.
+5. FEATURED PROJECTS — the same real projects, re-ordered and re-described to
+   lead with the work closest to this role's goals.
 
 Rules you must never break:
 1. Use ONLY the work history, skills and projects given to you. If the advert
-   asks for something the candidate has not done, do not claim it — instead
-   pick the closest real experience and describe it honestly.
-2. Never invent employers, dates, job titles, qualifications or metrics.
-3. Mirror the advert's own vocabulary where the candidate genuinely has the
-   experience, so applicant tracking systems match on it.
+   asks for something the candidate has not done, do not claim it — pick the
+   closest real experience and describe it honestly.
+2. Never invent employers, dates, job titles, qualifications, tools or metrics.
+   Every number you write must already appear in the candidate's history.
+3. Mirror the advert's vocabulary only where the experience is genuinely there,
+   so applicant tracking systems match without the CV becoming a lie.
 4. Write in British English, in a confident, plain, human voice. No cliches
-   like "passionate", "synergy", "dynamic team player", and no em dashes.
-5. Every bullet should show an outcome, not a duty.`;
+   like "passionate", "synergy" or "dynamic team player", and no em dashes.
+5. Every bullet shows an outcome, not a duty. Keep real numbers.
+6. Keep the CV to one page of A4: at most 4 jobs, at most 4 bullets each, at
+   most 4 projects, and at most 10 skills.`;
+
+const systemInstruction = process.env.GEMINI_CV_PROMPT || DEFAULT_CV_PROMPT;
 
 function buildPrompt(jobDescription: string, cv: MasterCv): string {
   return [
@@ -197,10 +251,12 @@ export async function generateApplication(
   return {
     job_title: parsed.job_title?.trim() || "Untitled role",
     company: parsed.company?.trim() || "",
+    cv_headline: parsed.cv_headline?.trim() || "",
     tailored_intro: parsed.tailored_intro?.trim() || "",
     resume_summary: parsed.resume_summary?.trim() || "",
     skills_matched: parsed.skills_matched ?? [],
     tailored_experience: parsed.tailored_experience ?? [],
+    tailored_projects: parsed.tailored_projects ?? [],
     screening_answers: parsed.screening_answers ?? [],
   };
 }
