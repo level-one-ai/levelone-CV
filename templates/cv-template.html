@@ -43,18 +43,32 @@
     padding: 0;
   }
 
+  /* The dark column is painted by the BODY background, not by the sidebar
+     element. A body background propagates to the page box, so Chromium
+     repaints it on every printed sheet — which means the dark stripe runs
+     the full length of a CV however many pages it takes.
+
+     The obvious alternative, a `position: fixed` sidebar, looks right on
+     page one and then silently clips: anything past 297mm is simply cut
+     off, so a long education list disappears. This way the sidebar is an
+     ordinary column that grows and flows across pages. */
   body {
-    background: var(--page);
     color: var(--ink);
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 9.6pt;
     line-height: 1.5;
+    background: linear-gradient(
+      to right,
+      var(--ink) 0 68mm,
+      var(--page) 68mm 100%
+    );
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   .sheet {
     display: flex;
+    align-items: flex-start;
     width: 210mm;
     min-height: 297mm;
   }
@@ -64,8 +78,15 @@
   .sidebar {
     width: 68mm;
     flex-shrink: 0;
-    background: var(--ink);
+    /* Transparent: the dark comes from the body background above. */
     color: var(--on-dark);
+  }
+
+  /* Keep a heading and its list on the same sheet. */
+  .sidebar section,
+  .sidebar .edu-list li {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .photo {
@@ -142,7 +163,7 @@
   }
 
   .edu-list li {
-    margin-bottom: 4.5mm;
+    margin-bottom: 4mm;
   }
 
   .edu-title {
@@ -156,12 +177,46 @@
     color: var(--on-dark-muted);
   }
 
+  /* Subject-and-grade lines under a school entry. */
+  .edu-detail {
+    margin: 1.2mm 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .edu-detail li {
+    font-size: 8.2pt;
+    line-height: 1.42;
+    color: var(--on-dark-muted);
+    margin-bottom: 0.4mm;
+  }
+
+  /* The tools list is denser than skills — it is a keyword list, not a
+     feature list, so it reads as wrapped chips rather than ruled rows. */
+  .tool-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.4mm;
+  }
+
+  .tool-list li {
+    font-size: 8.2pt;
+    line-height: 1.3;
+    color: var(--on-dark);
+    border: 0.2mm solid rgba(243, 241, 234, 0.22);
+    border-radius: 6mm;
+    padding: 0.9mm 2.2mm;
+  }
+
   /* ------------------------------ main ----------------------------- */
 
   .main {
     flex: 1;
     min-width: 0;
-    padding: 14mm 12mm 12mm;
+    padding: 14mm 12mm 14mm;
   }
 
   .name {
@@ -274,6 +329,11 @@
         <section>
           <h2>Skills</h2>
           {{skills_html}}
+        </section>
+
+        <section>
+          <h2>Tools</h2>
+          {{tools_html}}
         </section>
 
         <section>

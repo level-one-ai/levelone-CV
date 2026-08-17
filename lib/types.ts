@@ -10,8 +10,10 @@ export interface CvProfile {
   /** Free-form label -> URL map, e.g. { LinkedIn: "https://..." }. */
   links: Record<string, string>;
   master_summary: string;
-  /** Parsed from one comma-separated line in PocketBase. */
+  /** Human skills, e.g. Problem-Solving. Printed as written, never tailored. */
   skills: string[];
+  /** Tools and platforms, e.g. n8n, Docker. Tailored to each advert. */
+  tools: string[];
   /** One qualification per line: "Degree | School | Dates". */
   education: string;
   /** Stored filename of the uploaded headshot, empty if none. */

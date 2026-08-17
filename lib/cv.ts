@@ -129,6 +129,7 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
     links: asLinkMap(first.links),
     master_summary: String(first.master_summary ?? ""),
     skills: asSkillList(first.skills),
+    tools: asSkillList(first.tools),
     education: String(first.education ?? ""),
     photo: String(first.photo ?? ""),
   };
@@ -234,7 +235,20 @@ export function formatCvForPrompt(cv: MasterCv): string {
     for (const bullet of job.bullets) lines.push(`    * ${bullet}`);
   }
 
-  lines.push("", "SKILLS:", skills.join(", ") || "(none listed yet)");
+  lines.push(
+    "",
+    "HUMAN SKILLS (printed as written — do not re-order or change these):",
+    skills.join(", ") || "(none listed yet)"
+  );
+
+  // Gemini re-orders this list into skills_matched, so it has to see it.
+  // Without it the model has nothing to draw from and would either return the
+  // human skills or invent tools, both of which are wrong.
+  lines.push(
+    "",
+    "TOOLS AND PLATFORMS (re-order these for the advert; never add one that is not here):",
+    profile.tools.join(", ") || "(none listed yet)"
+  );
 
   lines.push("", "AI PROJECTS:");
   for (const project of projects) {

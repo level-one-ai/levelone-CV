@@ -40,7 +40,11 @@ export const COLLECTIONS = [
       // Your whole skill list on one line, separated by commas. This used to
       // be a collection of its own — 30 records of four fields each, for data
       // that reaches the prompt as a flat list either way.
+      // Human skills — Problem-Solving, Communication. Printed as written.
       text("skills", { max: 5000 }),
+      // Tools and platforms — n8n, Docker, Claude Code. This is the list an
+      // applicant tracking system scans, so Gemini re-orders it per advert.
+      text("tools", { max: 5000 }),
       // One qualification per line: "Degree | School | Dates". Never tailored
       // by Gemini, so it does not need a collection of its own.
       text("education", { max: 5000 }),

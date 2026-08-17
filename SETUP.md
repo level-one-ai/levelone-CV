@@ -261,7 +261,7 @@ npm run setup:pocketbase
 You should see:
 
 ```
-  ✓ cv_profile      created (10 fields)
+  ✓ cv_profile      created (11 fields)
   ✓ cv_experience   created (7 fields)
   ✓ cv_projects     created (7 fields)
   ✓ cv_template     created (2 fields)
@@ -318,6 +318,11 @@ server side using the login from Step 3.
 
 ## Step 5 — Type in your CV
 
+> **Shortcut:** if your CV content is already written into
+> `scripts/cv-content.mjs`, skip all the typing and run `npm run seed:cv`.
+> It fills in your profile, jobs and projects in one go. You still need to
+> upload your photo (Step 6) and fix your links.
+
 Now you fill the tables with your real history. This is the part that takes the
 longest, and it is the part that decides how good the results are. Take your
 time here.
@@ -363,6 +368,18 @@ skills are equally relevant, the AI tends to follow your order.
 > **New lines work too.** If you would rather put one skill per line, do that
 > instead. The app accepts either.
 
+- `tools` — the software you use, also on one line with commas:
+
+```
+n8n, Make.com, Custom Webhooks, REST APIs, Claude Code, Cursor, Docker, PostgreSQL, PocketBase, Stripe
+```
+
+**Skills and tools are different on purpose.** SKILLS are human things like
+Problem-Solving, and they print exactly as you write them. TOOLS are software
+names, and **this list gets re-ordered for every job** so the ones an advert
+asks for come first. Most companies scan CVs for tool names before a person
+reads them, so list everything you really use.
+
 - `education` — **one qualification per line**, with three parts split by the
   `|` character:
 
@@ -371,8 +388,19 @@ M.Sc. Artificial Intelligence | University of Glasgow | 2018 - 2019
 B.Sc. Computer Science | University of Strathclyde | 2014 - 2018
 ```
 
-The order is **Degree | School | Dates**. This is printed on your CV exactly as
-you type it — the AI never rewrites your education.
+The order is **Degree | School | Dates**. Leave out any part you do not have.
+
+To add subjects and grades, start a line with `-` and it attaches to the entry
+above it:
+
+```
+Boroughmuir High School | Edinburgh
+- Maths: Credit 2, Higher B, Advanced Higher A
+- Physics: Credit 2, Higher B, Advanced Higher B
+```
+
+This is printed on your CV exactly as you type it — the AI never rewrites your
+education.
 
 - `photo` — leave this for now. It is Step 6.
 

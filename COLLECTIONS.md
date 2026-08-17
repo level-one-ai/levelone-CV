@@ -18,7 +18,7 @@ check if something looks wrong.
 
 | Collection | What it holds | Who fills it in |
 | --- | --- | --- |
-| `cv_profile` | You: name, contact details, summary, skills, education, photo | **You**, one row |
+| `cv_profile` | You: contact details, summary, skills, tools, education, photo | **You**, one row |
 | `cv_experience` | Your jobs | **You**, one row per job |
 | `cv_projects` | Your projects | **You**, one row per project |
 | `cv_template` | The CV design, as HTML | Filled in automatically |
@@ -42,6 +42,7 @@ You only ever type into the first three.
 | `links` | JSON | see below |
 | `master_summary` | Plain text | see below |
 | `skills` | Plain text | see below |
+| `tools` | Plain text | see below |
 | `education` | Plain text | see below |
 | `photo` | File | your headshot, a `.jpg` or `.png` |
 
@@ -70,18 +71,36 @@ job, but it can never add things you did not tell it.
 > Example:
 > `AI automation engineer who builds production systems for service businesses. Ten years across full-stack development, with the last three focused on LLM-powered internal tools. Built and shipped a proposal engine, a booking platform and a CV generator, all end to end. Comfortable owning everything from database schema to the interface people actually use.`
 
-### `skills`
+### `skills` — your human skills
 
-All your skills on **one line**, separated by commas:
+These are the ones in the **SKILLS** panel. Not code, not software. The things
+you are good at as a person.
 
 ```
-TypeScript, Next.js, React, Node.js, PocketBase, Gemini API, n8n, Docker, SQL, Tailwind CSS
+Problem-Solving, Client Communication, Systems Thinking, Project Management, Process Improvement, Attention to Detail, Adaptability, Self-Direction, Learning Agility
 ```
 
-No quotes, no brackets. Spacing does not matter. List 15 to 30 — the AI picks
-out the ones each advert asks for and puts those first on the CV.
+One line, separated by commas. No quotes, no brackets. Spacing does not matter,
+and new lines work too if you prefer one per line.
 
-New lines work too, if you prefer one per line.
+**These are printed exactly as you write them.** The AI never re-orders or
+changes them, because "Problem-Solving" reads the same to every employer.
+
+### `tools` — the software you use
+
+These fill the **TOOLS** panel underneath.
+
+```
+n8n, Make.com, Custom Webhooks, REST APIs, Claude Code, Cursor, GitHub Copilot, Claude API, Firebase, Docker, VPS / Linux, PostgreSQL, PocketBase, Stripe, GoCardless
+```
+
+**This list IS re-ordered for every job.** If an advert asks for Docker, Docker
+moves to the front. This is the part that machines read — most companies scan
+CVs for tool names before a human ever sees them, so list everything you
+genuinely use.
+
+The AI can only re-order this list. It can never add a tool you have not
+written here.
 
 ### `education`
 
@@ -92,8 +111,22 @@ M.Sc. Artificial Intelligence | University of Glasgow | 2018 - 2019
 B.Sc. Computer Science | University of Strathclyde | 2014 - 2018
 ```
 
-The order is **Degree | School | Dates**. This is printed exactly as you type
-it — the AI never rewrites your education.
+The order is **Degree | School | Dates**. You can leave any part out — a
+qualification with no dates just prints without them.
+
+**Adding subjects and grades:** start a line with `-` and it becomes a detail
+of the entry above it:
+
+```
+BEng (Hons) Civil Engineering | Granton College
+HND Architecture | Granton College
+Boroughmuir High School | Edinburgh
+- Maths: Credit 2, Higher B, Advanced Higher A
+- Physics: Credit 2, Higher B, Advanced Higher B
+- English: General 3, Higher B, Advanced Higher B
+```
+
+This is printed exactly as you type it — the AI never rewrites your education.
 
 ### `photo`
 
@@ -207,7 +240,7 @@ The design uses `{{placeholders}}` where your details go. Two kinds:
 | `job_description` | Plain text | the advert you pasted |
 | `tailored_intro` | Plain text | your cover note |
 | `resume_summary` | Plain text | your rewritten profile paragraph |
-| `skills_matched` | JSON | the skills chosen for this job |
+| `skills_matched` | JSON | the tools chosen and re-ordered for this job |
 | `tailored_experience` | JSON | your jobs, rewritten for this advert |
 | `tailored_projects` | JSON | your projects, rewritten for this advert |
 | `screening_answers` | JSON | the question and answer pairs |

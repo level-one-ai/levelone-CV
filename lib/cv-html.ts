@@ -36,28 +36,54 @@ function splitName(fullName: string): { first: string; last: string } {
   };
 }
 
+export interface EducationEntry {
+  title: string;
+  school: string;
+  dates: string;
+  /** Subject-and-grade lines belonging to this entry. */
+  details: string[];
+}
+
 /**
  * Education is typed as one entry per line on the profile, with parts
  * separated by `|`:
  *
- *   M.Sc. Human-Computer Interaction | University of California | 2019-2021
+ *   BEng (Hons) Civil Engineering | Granton College | 2019 - 2022
  *
- * Anything after the first two parts is treated as the date line, so a missing
- * middle part degrades to something sensible rather than vanishing.
+ * A line starting with `-` is a detail of the entry above it, which is how a
+ * school's subjects and grades are listed:
+ *
+ *   Boroughmuir High School | Edinburgh
+ *   - Maths: Credit 2, Higher B, Advanced Higher A
+ *   - Physics: Credit 2, Higher B, Advanced Higher B
+ *
+ * Any part may be left out. A qualification with no dates renders without a
+ * date line rather than with an empty one.
  */
-export function parseEducation(
-  raw: string
-): Array<{ title: string; school: string; dates: string }> {
-  return raw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [title = "", school = "", dates = ""] = line
-        .split("|")
-        .map((part) => part.trim());
-      return { title, school, dates };
-    });
+export function parseEducation(raw: string): EducationEntry[] {
+  const entries: EducationEntry[] = [];
+
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (/^[-•*]\s*/.test(trimmed)) {
+      // A detail line with nothing above it would be silently dropped, so
+      // promote it to an entry of its own instead of losing the content.
+      const detail = trimmed.replace(/^[-•*]\s*/, "");
+      const last = entries[entries.length - 1];
+      if (last) last.details.push(detail);
+      else entries.push({ title: detail, school: "", dates: "", details: [] });
+      continue;
+    }
+
+    const [title = "", school = "", dates = ""] = trimmed
+      .split("|")
+      .map((part) => part.trim());
+    entries.push({ title, school, dates, details: [] });
+  }
+
+  return entries;
 }
 
 function photoBlock(photo: { data: Buffer; mime: string } | null): string {
@@ -99,13 +125,34 @@ function skillsBlock(skills: string[]): string {
 function educationBlock(raw: string): string {
   const entries = parseEducation(raw);
   if (!entries.length) return "";
+
   return `<ul class="edu-list">${entries
-    .map(
-      (entry) =>
-        `<li><div class="edu-title">${esc(entry.title)}</div>` +
-        `<div class="edu-meta">${esc(entry.school)}</div>` +
-        `<div class="edu-meta">${esc(entry.dates)}</div></li>`
-    )
+    .map((entry) => {
+      // Empty parts produce nothing at all. An entry with no dates should not
+      // leave a blank line where a date would have been.
+      const parts = [`<div class="edu-title">${esc(entry.title)}</div>`];
+      if (entry.school) {
+        parts.push(`<div class="edu-meta">${esc(entry.school)}</div>`);
+      }
+      if (entry.dates) {
+        parts.push(`<div class="edu-meta">${esc(entry.dates)}</div>`);
+      }
+      if (entry.details.length) {
+        parts.push(
+          `<ul class="edu-detail">${entry.details
+            .map((detail) => `<li>${esc(detail)}</li>`)
+            .join("")}</ul>`
+        );
+      }
+      return `<li>${parts.join("")}</li>`;
+    })
+    .join("")}</ul>`;
+}
+
+function toolsBlock(tools: string[]): string {
+  if (!tools.length) return "";
+  return `<ul class="tool-list">${tools
+    .map((tool) => `<li>${esc(tool)}</li>`)
     .join("")}</ul>`;
 }
 
@@ -200,10 +247,17 @@ export function buildCvHtml({
     // --- blocks the app builds ---
     photo_html: photoBlock(photo),
     contact_html: contactBlock(cv),
-    skills_html: skillsBlock(
+    // SKILLS are the human ones — problem-solving, communication. They read
+    // the same to every employer, so they are printed as written and never
+    // reshuffled by the model.
+    skills_html: skillsBlock(cv.skills),
+    // TOOLS are the keyword list an applicant tracking system scans for, so
+    // this is the part worth tailoring: Gemini puts the tools the advert names
+    // first, and the profile's own list is the fallback.
+    tools_html: toolsBlock(
       application.skills_matched.length
         ? application.skills_matched
-        : cv.skills
+        : cv.profile.tools
     ),
     education_html: educationBlock(cv.profile.education),
     experience_html: experienceBlock(application),

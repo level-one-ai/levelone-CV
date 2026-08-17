@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "setup:pocketbase": "node scripts/setup-pocketbase.mjs"
+    "setup:pocketbase": "node scripts/setup-pocketbase.mjs",
+    "seed:cv": "node scripts/seed-cv.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

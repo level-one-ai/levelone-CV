@@ -41,7 +41,7 @@ const responseSchema = {
     skills_matched: {
       type: Type.ARRAY,
       description:
-        "6-10 skills drawn from the candidate's real history that the advert asks for, most relevant first.",
+        "8-12 tools and platforms the candidate genuinely uses, re-ordered so the ones this advert names by title come first. Use the candidate's own tool list — never add a tool they have not listed. This is the list applicant tracking systems scan.",
       items: { type: Type.STRING },
     },
     tailored_experience: {
@@ -145,8 +145,9 @@ You are rewriting five parts of a CV, and nothing else:
    never promote them to a seniority they have not actually held.
 2. PROFESSIONAL SUMMARY — a short paragraph built around the main skills and
    keywords in the advert, drawn only from what the candidate has really done.
-3. CORE SKILLS — their real skills, re-ordered so the ones the advert asks for
-   by name come first. Use the advert's own wording where it genuinely matches.
+3. TOOLS — the tools and platforms they genuinely use, re-ordered so the ones
+   this advert names come first. Never add a tool they have not listed. Their
+   human skills are printed as written and are not yours to change.
 4. WORK EXPERIENCE BULLETS — the same real jobs, with the achievements that
    matter to this employer brought to the front and reworded in their terms.
 5. FEATURED PROJECTS — the same real projects, re-ordered and re-described to
