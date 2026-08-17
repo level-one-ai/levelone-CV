@@ -11,10 +11,43 @@
      the `cv_template` collection in PocketBase, and after that the
      PocketBase copy is what gets used — edit it there.
 
-     Placeholders come in two kinds:
-       {{scalar}}       a single value, e.g. {{full_name}}
-       {{something_html}}  a block the app builds for you, e.g. the
-                           list of jobs. Move it, do not rewrite it.
+     ------------------------------------------------------------------
+     EVERY PLACEHOLDER, AND WHETHER THE AI TOUCHES IT
+     ------------------------------------------------------------------
+
+     TAILORED — rewritten for every job advert you paste in:
+
+       {{headline}}           job title under your name
+       {{summary}}            the PROFILE paragraph
+       {{tools_html}}         TOOLS, re-ordered so the advert's own
+                              tools come first
+       {{experience_html}}    your jobs, bullets rewritten
+       {{projects_html}}      your projects, re-ordered and re-described
+
+     FIXED — printed exactly as you typed it in PocketBase, every time:
+
+       {{full_name}}          your full name
+       {{first_name}}         first name (for the stacked heading)
+       {{last_name}}          surname
+       {{photo_html}}         your headshot
+       {{contact_html}}       phone, address, email, links
+       {{skills_html}}        SKILLS — the human ones
+       {{education_html}}     schools, qualifications, grades
+
+     ALSO AVAILABLE — not used in this layout, but they work if you
+     want them:
+
+       {{job_title}}          the advert's job title
+       {{company}}            the hiring company
+       {{email}} {{phone}} {{location}}
+
+     Two kinds of placeholder:
+       {{scalar}}       one value, e.g. {{full_name}}
+       {{name_html}}    a block the app builds. Move it wherever you
+                        like, but do not try to write inside it.
+
+     A placeholder the app does not recognise is replaced with nothing,
+     so a typo leaves a gap rather than printing {{braces}} on your CV.
 
      Colours are the Level One palette, same as the web app.
      ================================================================== */
@@ -318,49 +351,60 @@
 <body>
   <div class="sheet">
     <aside class="sidebar">
+      <!-- FIXED: your headshot, from cv_profile.photo -->
       {{photo_html}}
 
       <div class="sidebar-body">
         <section>
           <h2>Contact</h2>
+          <!-- FIXED: phone, address, email and links -->
           {{contact_html}}
         </section>
 
         <section>
           <h2>Skills</h2>
+          <!-- FIXED: your human skills, printed as written -->
           {{skills_html}}
         </section>
 
         <section>
           <h2>Tools</h2>
+          <!-- TAILORED: re-ordered so the advert's own tools come first -->
           {{tools_html}}
         </section>
 
         <section>
           <h2>Education</h2>
+          <!-- FIXED: qualifications and grades, never rewritten -->
           {{education_html}}
         </section>
       </div>
     </aside>
 
     <main class="main">
+      <!-- FIXED: your name -->
       <h1 class="name">{{first_name}}<strong>{{last_name}}</strong></h1>
+
+      <!-- TAILORED: matched to the advert's job title -->
       <p class="headline">{{headline}}</p>
 
       <div class="rule"></div>
 
       <section>
         <h2>Profile</h2>
+        <!-- TAILORED: rewritten around the advert's keywords -->
         <p class="profile-text">{{summary}}</p>
       </section>
 
       <section>
         <h2>Work Experience</h2>
+        <!-- TAILORED: same real jobs, bullets rewritten for this employer -->
         {{experience_html}}
       </section>
 
       <section>
         <h2>Featured Projects</h2>
+        <!-- TAILORED: re-ordered and re-described for this role -->
         {{projects_html}}
       </section>
     </main>
