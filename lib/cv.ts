@@ -154,6 +154,7 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
     outcome: String(r.outcome ?? ""),
     link: String(r.link ?? ""),
     order: Number(r.order ?? 0),
+    client_name: String(r.client_name ?? ""),
   }));
 
   return { profile, experience, skills: profile.skills, projects };

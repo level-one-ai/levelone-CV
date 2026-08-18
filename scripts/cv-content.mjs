@@ -138,6 +138,13 @@ export const EXPERIENCE = [
 
 // NOTE: every client name has been removed on purpose. Describe the client by
 // sector and size, never by name.
+//
+// `client_name` is the one place a real client name belongs. It is NEVER
+// printed on the CV. Filling it in is what hides the name: it is listed to the
+// model as forbidden before it writes a word, and stripped from the generated
+// text in code afterwards, so neither a bad day from the model nor a slip in
+// your own wording can leak it. Leave it empty and you simply get no extra
+// protection for that project.
 export const PROJECTS = [
   {
     name: "Operations Command Centre & Document Router",
@@ -148,6 +155,8 @@ export const PROJECTS = [
     outcome:
       "Removed a daily manual filing and labelling step from the order process",
     link: "",
+    // TODO(dean): the real client name, if this one had a client.
+    client_name: "",
     order: 1,
   },
   {
@@ -159,6 +168,8 @@ export const PROJECTS = [
     outcome:
       "Fitted the client's existing workflow rather than forcing them to change it",
     link: "",
+    // TODO(dean): the real client name, if this one had a client.
+    client_name: "",
     order: 2,
   },
   {
@@ -170,6 +181,8 @@ export const PROJECTS = [
     outcome:
       "Replaced manual quoting and paper contracts with one system the office runs day to day",
     link: "",
+    // TODO(dean): the real client name, if this one had a client.
+    client_name: "",
     order: 3,
   },
   {
@@ -181,6 +194,8 @@ export const PROJECTS = [
     outcome:
       "Turned manual prospecting into a pipeline that hands over qualified, contactable leads",
     link: "",
+    // TODO(dean): the real client name, if this one had a client.
+    client_name: "",
     order: 4,
   },
   {
@@ -191,6 +206,8 @@ export const PROJECTS = [
     tech: ["Next.js", "TypeScript", "REST APIs", "Docker"],
     outcome: "Connected the shopfront to back-office stock without manual re-entry",
     link: "",
+    // TODO(dean): the real client name, if this one had a client.
+    client_name: "",
     order: 5,
   },
 ];

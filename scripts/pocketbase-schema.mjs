@@ -86,6 +86,11 @@ export const COLLECTIONS = [
       text("outcome"),
       text("link"),
       number("order"),
+      // The client this was built for. NEVER printed on the CV — it exists so
+      // the system knows which name to keep out. Typing it here is what makes
+      // it disappear: it is named to the model as forbidden, and stripped from
+      // the generated text in code afterwards.
+      text("client_name"),
     ],
   },
   {

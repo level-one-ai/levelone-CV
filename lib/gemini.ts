@@ -311,8 +311,35 @@ function resolvePrompt(): string {
 
 const systemInstruction = resolvePrompt();
 
-function buildPrompt(jobDescription: string, cv: MasterCv): string {
+/**
+ * The block that names the forbidden strings outright.
+ *
+ * This lives in buildPrompt, NOT in DEFAULT_CV_PROMPT, and that is deliberate:
+ * buildPrompt sits outside resolvePrompt(), so replacing the whole prompt with
+ * GEMINI_CV_PROMPT changes the writing style but cannot switch off the NDA
+ * rule. A custom prompt is a preference; this is a contract.
+ */
+function forbiddenNamesBlock(cv: MasterCv): string[] {
+  const names = forbiddenNames(cv);
+  if (names.length === 0) return [];
+
   return [
+    "=== NAMES YOU MAY NEVER PRINT ===",
+    "These are the candidate's clients, and they are under contract. Never",
+    "write any of these strings, in any field, in any form — not in a project",
+    "name, a description, a tech line, a bullet, the summary, the cover note or",
+    "a screening answer. Describe the client by sector instead: \"a trade",
+    "e-commerce client\", \"a logistics operator\". If one of these names appears",
+    "in the candidate's own notes below, that is precisely the name you must",
+    "leave out — their notes are private, the CV is not.",
+    ...names.map((name) => `  - ${name}`),
+    "",
+  ];
+}
+
+export function buildPrompt(jobDescription: string, cv: MasterCv): string {
+  return [
+    ...forbiddenNamesBlock(cv),
     "=== CANDIDATE MASTER CV ===",
     formatCvForPrompt(cv),
     "",
@@ -333,6 +360,104 @@ function isTransient(err: unknown): boolean {
     status === 503 ||
     /overloaded|unavailable|timeout|ECONNRESET/i.test(message)
   );
+}
+
+/**
+ * Every name that must never reach a generated CV.
+ *
+ * Two sources, combined:
+ *
+ *   1. `client_name` on each project. This is the one that matters — the name
+ *      is recorded in the same place the project is, so protection follows the
+ *      data. Add a client to cv_projects and they are covered immediately,
+ *      with nothing else to remember.
+ *   2. CV_REDACT_NAMES, for names not attached to any one project.
+ *
+ * The prompt is told this same list, but a prompt is a request and this is a
+ * contractual obligation — one slip publishes a name someone is under NDA
+ * about. So it is enforced a second time here, in plain string replacement,
+ * where the model gets no say. Both readings come from this one function, so
+ * the instruction and the enforcement cannot drift apart.
+ */
+export function forbiddenNames(cv?: MasterCv): string[] {
+  const fromEnv = (process.env.CV_REDACT_NAMES ?? "").split(",");
+  const fromProjects = (cv?.projects ?? []).map((p) => p.client_name ?? "");
+
+  const seen = new Set<string>();
+  const names: string[] = [];
+
+  for (const raw of [...fromProjects, ...fromEnv]) {
+    const name = raw.trim();
+    // Under three characters is not a company name, it is a substring that
+    // would shred ordinary words wherever it happened to appear.
+    if (name.length < 3) continue;
+
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
+
+  // Longest first, so "Acme Logistics Ltd" is caught before "Acme".
+  return names.sort((a, b) => b.length - a.length);
+}
+
+/** What a redacted name is replaced with. */
+const REDACTED = "a client";
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Strips every configured name from a string, along with the bracketed
+ * wrapper it usually sits in — "Order Router (Acme Ltd)" should become
+ * "Order Router", not "Order Router (a client)".
+ */
+function redact(value: string, names: string[]): string {
+  let out = value;
+  for (const name of names) {
+    const escaped = escapeRegExp(name);
+    out = out
+      .replace(new RegExp(`\\s*[([]\\s*${escaped}\\s*[)\\]]`, "gi"), "")
+      .replace(new RegExp(`\\s+(?:for|at|with)\\s+${escaped}\\b`, "gi"), "")
+      .replace(new RegExp(escaped, "gi"), REDACTED);
+  }
+  return out.replace(/\s{2,}/g, " ").trim();
+}
+
+/** Applies the redaction list across every field a name could hide in. */
+export function redactApplication(
+  application: GeneratedApplication,
+  cv?: MasterCv
+): GeneratedApplication {
+  const names = forbiddenNames(cv);
+  if (names.length === 0) return application;
+
+  const r = (value: string) => redact(value, names);
+
+  return {
+    ...application,
+    cv_headline: r(application.cv_headline),
+    tailored_intro: r(application.tailored_intro),
+    resume_summary: r(application.resume_summary),
+    skills_matched: application.skills_matched.map(r),
+    tailored_experience: application.tailored_experience.map((job) => ({
+      ...job,
+      // The candidate's OWN employer stays named; only the text around it is
+      // scrubbed, since that is where a client tends to be mentioned.
+      bullets: job.bullets.map(r),
+    })),
+    tailored_projects: application.tailored_projects.map((project) => ({
+      name: r(project.name),
+      description: r(project.description),
+      tech: r(project.tech),
+    })),
+    screening_answers: application.screening_answers.map((qa) => ({
+      question: r(qa.question),
+      answer: r(qa.answer),
+    })),
+  };
 }
 
 /**
@@ -391,91 +516,20 @@ export async function generateApplication(
 
   // The schema guarantees the keys exist, but a model can still answer with
   // empty arrays. Normalising here keeps every consumer free of null checks.
-/**
- * Names that must never reach a generated CV, from CV_REDACT_NAMES.
- *
- * The prompt already forbids printing a client's name, but a prompt is a
- * request and this is a contractual obligation — one slip publishes a name
- * someone is under NDA about. So the same rule is enforced again here, in
- * plain string replacement, where the model gets no say.
- */
-function redactionList(): string[] {
-  return (process.env.CV_REDACT_NAMES ?? "")
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean)
-    // Longest first, so "Acme Logistics Ltd" is caught before "Acme".
-    .sort((a, b) => b.length - a.length);
-}
-
-/** What a redacted name is replaced with. */
-const REDACTED = "a client";
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
- * Strips every configured name from a string, along with the bracketed
- * wrapper it usually sits in — "Order Router (Acme Ltd)" should become
- * "Order Router", not "Order Router (a client)".
- */
-function redact(value: string, names: string[]): string {
-  let out = value;
-  for (const name of names) {
-    const escaped = escapeRegExp(name);
-    out = out
-      .replace(new RegExp(`\\s*[([]\\s*${escaped}\\s*[)\\]]`, "gi"), "")
-      .replace(new RegExp(`\\s+(?:for|at|with)\\s+${escaped}\\b`, "gi"), "")
-      .replace(new RegExp(escaped, "gi"), REDACTED);
-  }
-  return out.replace(/\s{2,}/g, " ").trim();
-}
-
-/** Applies the redaction list across every field a name could hide in. */
-function redactApplication(
-  application: GeneratedApplication
-): GeneratedApplication {
-  const names = redactionList();
-  if (names.length === 0) return application;
-
-  const r = (value: string) => redact(value, names);
-
-  return {
-    ...application,
-    cv_headline: r(application.cv_headline),
-    tailored_intro: r(application.tailored_intro),
-    resume_summary: r(application.resume_summary),
-    skills_matched: application.skills_matched.map(r),
-    tailored_experience: application.tailored_experience.map((job) => ({
-      ...job,
-      // The candidate's OWN employer stays named; only the text around it is
-      // scrubbed, since that is where a client tends to be mentioned.
-      bullets: job.bullets.map(r),
-    })),
-    tailored_projects: application.tailored_projects.map((project) => ({
-      name: r(project.name),
-      description: r(project.description),
-      tech: r(project.tech),
-    })),
-    screening_answers: application.screening_answers.map((qa) => ({
-      question: r(qa.question),
-      answer: r(qa.answer),
-    })),
-  };
-}
-
-  return redactApplication({
-    job_title: parsed.job_title?.trim() || "Untitled role",
-    company: parsed.company?.trim() || "",
-    cv_headline: parsed.cv_headline?.trim() || "",
-    tailored_intro: parsed.tailored_intro?.trim() || "",
-    resume_summary: parsed.resume_summary?.trim() || "",
-    skills_matched: parsed.skills_matched ?? [],
-    tailored_experience: parsed.tailored_experience ?? [],
-    tailored_projects: parsed.tailored_projects ?? [],
-    screening_answers: parsed.screening_answers ?? [],
-  });
+  return redactApplication(
+    {
+      job_title: parsed.job_title?.trim() || "Untitled role",
+      company: parsed.company?.trim() || "",
+      cv_headline: parsed.cv_headline?.trim() || "",
+      tailored_intro: parsed.tailored_intro?.trim() || "",
+      resume_summary: parsed.resume_summary?.trim() || "",
+      skills_matched: parsed.skills_matched ?? [],
+      tailored_experience: parsed.tailored_experience ?? [],
+      tailored_projects: parsed.tailored_projects ?? [],
+      screening_answers: parsed.screening_answers ?? [],
+    },
+    cv
+  );
 }
 
 function describeGeminiError(err: unknown): Error {

@@ -40,6 +40,12 @@ export interface CvProject {
   outcome: string;
   link: string;
   order: number;
+  /**
+   * The client this was built for. Never rendered, never sent to the model as
+   * part of the project description — it is here only so the name can be
+   * forbidden in the prompt and scrubbed from the output.
+   */
+  client_name: string;
 }
 
 /** Everything Gemini is given about Dean, in one object. */

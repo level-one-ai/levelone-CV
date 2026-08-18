@@ -176,19 +176,27 @@ leak a name that was never typed in.
 
 `role` is `Designed and built` on all five. `link` stays empty.
 
+**`client_name`:** put the real client's name in this field on each row — the
+one you are under contract not to publish. It is never printed on your CV. It
+is there so the system knows which name to keep out: the AI is given the list
+as forbidden before it writes, and the finished text is scrubbed of those names
+in code afterwards. I have left it empty in `scripts/cv-content.mjs`, because I
+should not be the one typing your clients' names into a file.
+
 Five projects, and the AI features the best three for each advert.
 
-### Belt and braces on the client names
+### Names that are not tied to one project
 
-Add this to `.env.local` as well:
+`client_name` covers your projects. For a company that only comes up elsewhere
+— in a work-experience bullet, say — add it to `.env.local`:
 
 ```
 CV_REDACT_NAMES=Grove Group, The Garage Conversion Co., Trader Brothers, Cekra
 ```
 
-Anything on that list is stripped from the finished CV in code, whatever the AI
-writes. The prompt already forbids client names, but a prompt is a request and
-your NDA is not.
+Both lists are handled the same way: stripped from the finished CV in code,
+whatever the AI writes. The prompt forbids client names as well, but a prompt
+is a request and your NDA is not.
 
 ---
 

@@ -38,7 +38,7 @@ reason: **they are secret**. The code goes on GitHub. This file never does.
 | `GEMINI_MODEL` | You pick one from a list | Easy |
 | `GEMINI_CV_PROMPT` | **Optional** — leave blank | None |
 | `PDF_CHROMIUM_PATH` | **Optional** — leave blank | None |
-| `CV_REDACT_NAMES` | **Optional** — client names to hide | None |
+| `CV_REDACT_NAMES` | **Optional** — extra names to hide | None |
 
 Only **one** of them comes from a website. Two you invent. The rest already
 work as they are.
@@ -493,8 +493,16 @@ an instruction to an AI is a request, and this is a contract. This setting is
 enforced in code after the AI has finished, so it holds no matter what the AI
 writes.
 
-**Better still:** do not type the client name into `cv_projects` in the first
-place. You cannot leak a name that was never there.
+**You probably do not need this any more.** There is now a `client_name` field
+on every row in `cv_projects`. Put the client's name there and it is covered
+automatically — named to the AI as forbidden before it writes a word, and
+stripped from the finished CV afterwards. That field is never printed on the
+CV. Keeping the name next to the project it belongs to means there is only one
+place to remember, so a new client cannot be missed.
+
+Use `CV_REDACT_NAMES` for names that are not tied to any single project — a
+company mentioned in a work-experience bullet, say. Both lists are enforced
+the same way.
 
 ---
 

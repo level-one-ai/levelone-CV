@@ -241,15 +241,31 @@ Write more bullets than you need. The AI picks the ones that match each advert.
 | `outcome` | Plain text | `Cut quoting time from 3 hours to 8 minutes` |
 | `link` | Plain text | `https://levelone.digital/proposals` |
 | `order` | Number | `1` |
+| `client_name` | Plain text | `Grove Group` — **never printed on your CV** |
 
 `tech` is a JSON list, same rules as `bullets`: square brackets, quotes around
 each item, commas between.
 
 ### Keeping your clients anonymous
 
-**Do not put a client's company name in `name` or `description`.** If you are
-under contract not to name who you worked for, the safest anonymising is not
-typing the name at all.
+**Put the client's name in `client_name`, and nowhere else.**
+
+That field is never printed on your CV. It exists for the opposite reason —
+typing the name there is what hides it. Two things then happen automatically,
+every time you generate:
+
+1. **The AI is told the name before it writes anything**, as a string it may
+   never print in any field.
+2. **The finished text is checked afterwards, in code.** Every field is
+   scanned and the name is replaced with "a client", whatever the AI did.
+   Brackets go with it, so `Order Router (Grove Group)` becomes
+   `Order Router`.
+
+The second step is the one that matters. An instruction to an AI is a request;
+this is a contract. So it is enforced again where the AI gets no say.
+
+**Still do not type the name in `name` or `description`.** You cannot leak a
+name that was never there, and `client_name` is a safety net, not a licence.
 
 Instead of:
 
@@ -266,16 +282,17 @@ Operations Command Centre & Automated Document Router
 and describe the client by sector in the description: "a trade e-commerce
 client", "a logistics operator".
 
-**There is a safety net as well.** Set `CV_REDACT_NAMES` in `.env.local` to a
-comma-separated list of names, and they are stripped out of every generated CV
-in code, whatever the AI writes:
+**For names not tied to one project** — a company that only comes up in a
+work-experience bullet, say — there is `CV_REDACT_NAMES` in `.env.local`, a
+comma-separated list handled exactly the same way:
 
 ```
 CV_REDACT_NAMES=Grove Group, Trader Brothers, Cekra
 ```
 
-The AI is told not to print client names too, but an instruction is a request.
-This one is enforced.
+You do not need to repeat a name here that is already in a `client_name`
+field. Names under three characters are ignored, because a two-letter "name"
+would chew holes in ordinary words.
 
 ---
 

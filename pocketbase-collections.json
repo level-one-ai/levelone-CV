@@ -145,6 +145,10 @@
       {
         "name": "order",
         "type": "number"
+      },
+      {
+        "name": "client_name",
+        "type": "text"
       }
     ],
     "indexes": []
