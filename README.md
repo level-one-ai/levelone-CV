@@ -41,6 +41,22 @@ Chromium is found automatically: Playwright's browsers first, then the usual
 Google Chrome, Chromium and Edge locations on macOS, Windows and Linux. Set
 `PDF_CHROMIUM_PATH` to override.
 
+## Deploying
+
+A container has no browser in it, so `npm start` on a stock Node image gets
+through Gemini and then fails on the print step. The `Dockerfile` installs
+Chromium and the fonts the CV layout depends on — `fonts-liberation` in
+particular is load-bearing, not cosmetic: without it Chromium falls back to
+DejaVu Sans and the CV runs to two pages.
+
+```bash
+docker build -t levelone-cv .
+docker run -p 3000:3000 --env-file .env.local levelone-cv
+```
+
+On Coolify, set the build pack to **Dockerfile** (not Nixpacks) and the port to
+3000. SETUP.md, "Putting it on a server", walks through it.
+
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS ·

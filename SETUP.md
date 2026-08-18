@@ -532,6 +532,104 @@ one of them to open it again — the text and the CV both come back.
 
 ---
 
+## Putting it on a server (Coolify)
+
+Everything above runs the app on your own computer. That works, but the app is
+only on while your laptop is on. Putting it on a server means it is always
+there, from any device.
+
+You do not have to do this. Skip this section if you are happy running it at
+home.
+
+### Why there is an extra step
+
+Your CV is turned into a PDF by **Chrome**. Not a copy of Chrome somewhere on
+the internet — a real one, on the same machine as the app.
+
+Your laptop already has Chrome, so it just works. A fresh server does not. It
+is empty. So the app would write your whole application, then fail at the very
+last moment with "Could not find a Chrome or Chromium".
+
+The fix is a file called **`Dockerfile`**, which is already in the project. A
+Dockerfile is a recipe. It tells the server: install Chrome, install the fonts,
+install the app, then start it. You do not have to edit it or understand it.
+You just have to tell Coolify to use it.
+
+### What you need first
+
+- A server, connected to Coolify.
+- PocketBase already running on that server, with **a storage volume mounted at
+  `/pb_data`**. This one matters. Without a volume, everything in your database
+  is wiped every time you redeploy — your CV, and every application you have
+  ever made.
+- Your project pushed to GitHub.
+
+### Step A — Make the app in Coolify
+
+1. In Coolify, open your project and click **+ New**, then **Application**.
+2. Pick your GitHub repository.
+3. Choose the branch you want to deploy.
+
+### Step B — Tell it to use the Dockerfile
+
+This is the important click. In the application's settings:
+
+1. Find **Build Pack**.
+2. Change it from **Nixpacks** to **Dockerfile**.
+
+Nixpacks is the default, and it builds a server with no Chrome in it. Choosing
+**Dockerfile** is what gets Chrome installed. If your PDFs do not work later,
+this is the first thing to check.
+
+Then set **Ports Exposes** to `3000`.
+
+### Step C — Paste in your settings
+
+Go to **Environment Variables** and add these. They are the same ones from your
+`.env.local`, just typed in a web page instead of a file.
+
+| Name | What to put |
+| --- | --- |
+| `NEXT_PUBLIC_POCKETBASE_URL` | The address of your PocketBase, like `https://pb.yoursite.com`. No slash on the end. |
+| `POCKETBASE_ADMIN_EMAIL` | The PocketBase account you made in Step 3. |
+| `POCKETBASE_ADMIN_PASSWORD` | Its password. Tick **secret** if Coolify offers it. |
+| `GEMINI_API_KEY` | Your key from Step 2. Tick **secret** for this one too. |
+| `GEMINI_MODEL` | `gemini-2.5-flash` |
+| `CV_REDACT_NAMES` | Client names to keep off your CV. Leave blank if you have none. |
+
+**You do not need `PDF_CHROMIUM_PATH`.** The Dockerfile already sets it. This
+catches people out, so to be clear: the setting only says *where* Chrome is. It
+cannot install one. Adding it to a server with no Chrome changes the error
+message and nothing else.
+
+### Step D — Deploy
+
+Click **Deploy** and watch the log.
+
+The first build is slow — five to ten minutes is normal, because it is
+downloading Chrome. Later builds are much faster.
+
+### Step E — Check it actually worked
+
+Do not trust a green tick. Open the app and generate a real application.
+
+- **You get a PDF** — you are finished.
+- **"Could not find a Chrome or Chromium"** — the Build Pack is still set to
+  Nixpacks. Go back to Step B, change it, and deploy again.
+- **"Could not reach PocketBase"** — the address is wrong, or PocketBase is not
+  running. Open that address in your browser and see.
+- **The page loads but the sidebar is empty** — the app is running fine; your
+  database is empty. Type your CV in, or run `npm run seed:cv`.
+
+### One thing to look at afterwards
+
+Open a generated CV and check it is still **one page**. It should be — the
+Dockerfile installs the same fonts your laptop uses, and this was tested. But
+fonts are what decide where the text stops, so it is worth a look the first
+time.
+
+---
+
 ## When something goes wrong
 
 The app tries to tell you exactly what is wrong. Here is what the messages mean.
