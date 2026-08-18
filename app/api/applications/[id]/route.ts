@@ -44,7 +44,7 @@ export async function GET(
   }
 }
 
-/** Removes an application and its stored .docx from the sidebar. */
+/** Removes an application and its stored PDF from the sidebar. */
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -4,9 +4,9 @@
  * This is the single source of truth for the schema. The field names are not
  * free choices — each one is read or written by name somewhere in the code:
  *
- *   cv_profile     lib/cv.ts (loadMasterCv) and lib/docx.ts (buildTemplateData)
+ *   cv_profile     lib/cv.ts (loadMasterCv)
  *   cv_experience  lib/cv.ts
- *   cv_projects    lib/cv.ts and lib/docx.ts
+ *   cv_projects    lib/cv.ts (loadMasterCv)
  *   applications   app/api/generate-application/route.ts (write)
  *                  lib/applications.ts (read back)
  *                  app/api/applications/route.ts (sidebar list)

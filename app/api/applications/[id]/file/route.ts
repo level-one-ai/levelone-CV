@@ -40,7 +40,7 @@ export async function GET(
       );
     }
 
-    // A short-lived file token so this also works when the `docx` field is
+    // A short-lived file token so this also works when the `pdf` field is
     // marked Protected in PocketBase.
     const token = await pb.files.getToken();
     const fileUrl = pb.files.getURL(record, fileName, { token });

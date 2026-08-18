@@ -12,10 +12,11 @@ import OutputCards from "@/components/OutputCards";
 import type {
   ApplicationRecord,
   ApplicationSummary,
+  DuplicateMatch,
   GenerateResponse,
 } from "@/lib/types";
 
-// Both of these reach for `window` (WebGL / docx-preview), so neither can be
+// Both of these reach for `window` (WebGL / the PDF iframe), so neither can be
 // server-rendered.
 const Background3D = dynamic(() => import("@/components/Background3D"), {
   ssr: false,
@@ -26,11 +27,26 @@ const CvViewerPanel = dynamic(() => import("@/components/CvViewerPanel"), {
 
 type Status = "idle" | "loading" | "ready" | "error";
 
+/**
+ * PocketBase hands dates back as "2026-08-12 09:00:00Z", which Safari will not
+ * parse — hence the same space-to-T swap HistorySidebar uses.
+ */
+function formatDate(iso: string): string {
+  const date = new Date(iso.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function HomePage() {
   const [jobDescription, setJobDescription] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
 
+  const [duplicate, setDuplicate] = useState<DuplicateMatch | null>(null);
   const [application, setApplication] = useState<ApplicationRecord | null>(null);
   const [docUrl, setDocUrl] = useState("");
 
@@ -65,22 +81,39 @@ export default function HomePage() {
     setStatus("ready");
   }
 
-  async function handleGenerate() {
+  /**
+   * `force` skips the already-applied check. It is only ever set by the button
+   * on the warning itself, so the check cannot be bypassed by accident.
+   */
+  async function handleGenerate(force = false) {
     const text = jobDescription.trim();
     if (!text) return;
 
     setStatus("loading");
     setError("");
+    setDuplicate(null);
     setViewerOpen(false);
 
     try {
       const response = await fetch("/api/generate-application", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobDescription: text }),
+        body: JSON.stringify({ jobDescription: text, force }),
       });
 
-      const body = (await response.json()) as GenerateResponse & { error?: string };
+      const body = (await response.json()) as GenerateResponse & {
+        error?: string;
+        duplicate?: DuplicateMatch;
+      };
+
+      // 409 is not a failure — it is the system doing its job. It gets its own
+      // card rather than the red error box.
+      if (response.status === 409 && body.duplicate) {
+        setDuplicate(body.duplicate);
+        setStatus("idle");
+        return;
+      }
+
       if (!response.ok) throw new Error(body.error ?? "Generation failed.");
 
       show(body);
@@ -128,6 +161,7 @@ export default function HomePage() {
     setApplication(null);
     setDocUrl("");
     setError("");
+    setDuplicate(null);
     setViewerOpen(false);
     setStatus("idle");
   }
@@ -236,10 +270,52 @@ export default function HomePage() {
                 <div className="w-full">
                   <JobDescriptionComposer
                     value={jobDescription}
-                    onChange={setJobDescription}
-                    onSubmit={handleGenerate}
+                    onChange={(next) => {
+                      // A different advert is a different question, so the old
+                      // answer must not linger.
+                      setJobDescription(next);
+                      if (duplicate) setDuplicate(null);
+                    }}
+                    onSubmit={() => handleGenerate()}
                   />
                 </div>
+
+                {duplicate ? (
+                  <div
+                    role="alert"
+                    className="w-full rounded-2xl border border-amber-200 bg-amber-50/80 px-5 py-4 text-fluid-sm text-amber-900 backdrop-blur"
+                  >
+                    <p className="font-semibold">
+                      You have applied to this one already.
+                    </p>
+                    <p className="mt-1">
+                      {duplicate.job_title}
+                      {duplicate.company ? ` at ${duplicate.company}` : ""}
+                      {duplicate.created ? `, ${formatDate(duplicate.created)}` : ""}
+                      {duplicate.reason === "same-role"
+                        ? " — same job title and employer, worded differently."
+                        : duplicate.reason === "near-identical"
+                          ? " — almost the same advert."
+                          : " — the same advert."}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleSelect(duplicate.id)}
+                        className="rounded-full bg-amber-900 px-4 py-2 text-fluid-xs font-medium text-amber-50 transition hover:bg-amber-800"
+                      >
+                        Open that application
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleGenerate(true)}
+                        className="rounded-full border border-amber-300 px-4 py-2 text-fluid-xs font-medium text-amber-900 transition hover:bg-amber-100"
+                      >
+                        Generate it again anyway
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {status === "error" && error ? (
                   <div

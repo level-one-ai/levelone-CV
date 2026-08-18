@@ -27,13 +27,14 @@ export const PROFILE = {
   phone: "07360 076374",
   location: "Edinburgh, Scotland",
 
-  // TODO(dean): replace both with your real profile addresses before you send
-  // this CV anywhere. These are placeholders — I do not know your usernames,
-  // and a wrong link on a CV is worse than no link.
-  links: {
-    LinkedIn: "https://linkedin.com/in/YOUR-LINKEDIN-USERNAME",
-    GitHub: "https://github.com/YOUR-GITHUB-USERNAME",
-  },
+  // Deliberately EMPTY. Dean's real portfolio, GitHub and LinkedIn addresses
+  // live in PocketBase, typed in by hand, and this file must never be able to
+  // overwrite them with something invented. A placeholder here is not a
+  // harmless reminder: `seed:cv --force` rebuilds the profile row from this
+  // file, so a fake address in here is a fake address printed on a real CV.
+  //
+  // If you do want your links to live in this file, put the real ones here.
+  links: {},
 
   master_summary:
     "Automation engineer and founder with four years building production AI " +

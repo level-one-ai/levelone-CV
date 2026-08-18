@@ -2,8 +2,9 @@
 /**
  * Fills PocketBase with your CV content.
  *
- *   npm run seed:cv              (only if your CV is empty)
- *   npm run seed:cv -- --force   (replace what is there)
+ *   npm run seed:cv                     (only if your CV is empty)
+ *   npm run seed:cv -- --force          (replace what is there)
+ *   npm run seed:cv -- --force --yes    (...even if that destroys something)
  *
  * The content itself lives in scripts/cv-content.mjs. Edit that file and
  * re-run with --force, or edit the records in the PocketBase admin page —
@@ -14,6 +15,13 @@
  * By default this REFUSES to touch a CV that already has content. Losing an
  * afternoon of typed edits to a re-run of a command is not an acceptable
  * outcome, so replacing has to be asked for explicitly.
+ *
+ * --force rebuilds the profile row from this file, which DELETES the old one.
+ * Two things live on that row and nowhere else: your uploaded photo, and any
+ * detail you typed straight into PocketBase that this file does not carry. So
+ * before clearing, --force works out what would be lost, prints it by name,
+ * and stops. Only --yes goes through with it. A first-time seed, or one that
+ * would lose nothing, is unaffected.
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -23,6 +31,7 @@ import PocketBase from "pocketbase";
 import { EXPERIENCE, PROFILE, PROJECTS } from "./cv-content.mjs";
 
 const FORCE = process.argv.includes("--force");
+const YES = process.argv.includes("--yes");
 
 const tick = "✓";
 const cross = "✗";
@@ -146,6 +155,86 @@ if (existingProfile.length > 0 && !FORCE) {
   process.exit(0);
 }
 
+/**
+ * What would be destroyed by rebuilding the profile row from cv-content.mjs.
+ *
+ * Only counts things that exist in PocketBase and NOT in the file, because
+ * those are the ones that cannot come back. A field the file also carries is
+ * merely rewritten, which is what --force is for.
+ */
+function losses(profile) {
+  const out = [];
+  if (!profile) return out;
+
+  if (profile.photo) {
+    out.push([
+      "photo",
+      `"${profile.photo}" — an uploaded file. It CANNOT be recovered.`,
+    ]);
+  }
+
+  const liveLinks = Object.keys(
+    (typeof profile.links === "string"
+      ? safeParse(profile.links)
+      : profile.links) ?? {}
+  );
+  const fileLinks = Object.keys(PROFILE.links ?? {});
+  const lostLinks = liveLinks.filter((name) => !fileLinks.includes(name));
+  if (lostLinks.length) {
+    out.push([
+      "links",
+      `${lostLinks.join(", ")} — this file has ${
+        fileLinks.length ? `only ${fileLinks.join(", ")}` : "none"
+      }.`,
+    ]);
+  }
+
+  // Any other text field filled in live but empty in the file.
+  for (const field of [
+    "full_name", "headline", "email", "phone", "location",
+    "master_summary", "skills", "tools", "education",
+  ]) {
+    const live = String(profile[field] ?? "").trim();
+    const fromFile = String(PROFILE[field] ?? "").trim();
+    if (live && !fromFile) out.push([field, "filled in here, empty in the file."]);
+  }
+
+  return out;
+}
+
+function safeParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
+}
+
+// ---- say what --force would destroy, before destroying it -----------------
+
+if (FORCE && !YES) {
+  const damage = losses(existingProfile[0]);
+
+  if (damage.length) {
+    console.log(`${cross} --force would DELETE things that are only in PocketBase:`);
+    console.log("");
+    for (const [field, why] of damage) {
+      console.log(`     ${field.padEnd(14)} ${why}`);
+    }
+    console.log("");
+    console.log("  Nothing has been changed.");
+    console.log("");
+    console.log("  If you meant to keep them, copy them into");
+    console.log("  scripts/cv-content.mjs first, then run this again.");
+    console.log("");
+    console.log("  If you really want them gone:");
+    console.log("");
+    console.log("    npm run seed:cv -- --force --yes");
+    console.log("");
+    process.exit(0);
+  }
+}
+
 try {
   if (FORCE) {
     const removed =
@@ -190,8 +279,10 @@ console.log("");
 console.log("  1. Upload your photo.");
 console.log(`     Go to ${url}/_/  →  cv_profile  →  your record  →  photo`);
 console.log("");
-console.log("  2. Fix your LinkedIn and GitHub links.");
-console.log("     They are placeholders right now. Open cv_profile → links");
-console.log("     and put your real profile addresses in.");
+console.log("  2. Add your links.");
+console.log("     This file carries none on purpose — a made-up address here");
+console.log("     would end up printed on a real CV. Open cv_profile → links");
+console.log("     and put your real ones in, for example:");
+console.log('       {"LinkedIn": "https://linkedin.com/in/you", "Website": "https://..."}');
 console.log("");
 console.log("Then run `npm run dev` and paste in a job advert.\n");

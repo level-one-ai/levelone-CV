@@ -109,6 +109,20 @@ export interface ApplicationSummary {
   created: string;
 }
 
+/** Why an advert was flagged as one you have already applied to. */
+export type DuplicateReason = "identical" | "near-identical" | "same-role";
+
+/** A past application that looks like the advert just pasted. */
+export interface DuplicateMatch {
+  id: string;
+  job_title: string;
+  company: string;
+  created: string;
+  reason: DuplicateReason;
+  /** Jaccard similarity, 0 to 1. Zero for a `same-role` match, which is not scored. */
+  score: number;
+}
+
 /** What POST /api/generate-application answers with. */
 export interface GenerateResponse {
   application: ApplicationRecord;

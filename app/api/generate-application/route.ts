@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { loadCvTemplate, loadMasterCv, loadProfilePhoto } from "@/lib/cv";
 import { buildCvHtml, buildFileName } from "@/lib/cv-html";
+import { findDuplicate, type PastApplication } from "@/lib/duplicates";
 import { generateApplication } from "@/lib/gemini";
 import { renderPdf } from "@/lib/pdf";
 import {
@@ -25,10 +26,49 @@ const bodySchema = z.object({
     .trim()
     .min(60, "Paste a bit more of the job advert — at least a couple of sentences.")
     .max(30_000, "That job advert is too long. Paste just the role and requirements."),
+  /** Set once the duplicate warning has been seen and waved through. */
+  force: z.boolean().optional(),
 });
+
+/**
+ * How far back the duplicate check looks. Enough to cover a real job hunt,
+ * capped so the check cannot become the slow part — each row carries a full
+ * job advert, and adverts are long.
+ */
+const DUPLICATE_LOOKBACK = 200;
+
+/**
+ * Looks for a past application matching this advert.
+ *
+ * A failure here must never stop a generation: not being told "you already
+ * applied" is a far smaller harm than being unable to apply at all. So any
+ * error is logged and treated as "no duplicate".
+ */
+async function findExistingApplication(
+  pb: Awaited<ReturnType<typeof superuserClient>>,
+  jobDescription: string
+) {
+  try {
+    const past = await pb
+      .collection(COLLECTIONS.applications)
+      .getList(1, DUPLICATE_LOOKBACK, {
+        sort: "-created",
+        fields: "id,job_title,company,created,job_description",
+      });
+
+    return findDuplicate(
+      jobDescription,
+      past.items as unknown as PastApplication[]
+    );
+  } catch (err) {
+    console.warn("[generate-application] duplicate check skipped:", err);
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   let jobDescription: string;
+  let force = false;
   try {
     const parsed = bodySchema.safeParse(await request.json());
     if (!parsed.success) {
@@ -38,6 +78,7 @@ export async function POST(request: Request) {
       );
     }
     jobDescription = parsed.data.jobDescription;
+    force = parsed.data.force ?? false;
   } catch {
     return NextResponse.json(
       { error: "Could not read the request body." },
@@ -50,10 +91,21 @@ export async function POST(request: Request) {
     const pb = await superuserClient();
     const cv = await loadMasterCv(pb);
 
-    // 2. Gemini maps that history onto this advert.
+    // 2. Have we been here before? This runs BEFORE Gemini deliberately, so
+    //    spotting a repeat costs nothing — no tokens, no PDF, no record.
+    //    It warns rather than blocks: re-applying months later, or rebuilding
+    //    a CV that came out badly, are both perfectly reasonable.
+    if (!force) {
+      const duplicate = await findExistingApplication(pb, jobDescription);
+      if (duplicate) {
+        return NextResponse.json({ duplicate }, { status: 409 });
+      }
+    }
+
+    // 3. Gemini maps that history onto this advert.
     const application = await generateApplication(jobDescription, cv);
 
-    // 3. The same text is poured into the HTML template and printed to PDF,
+    // 4. The same text is poured into the HTML template and printed to PDF,
     //    entirely in memory. The template comes from PocketBase when there is
     //    one, so edits made in the admin UI take effect immediately.
     const [template, photo] = await Promise.all([
@@ -74,7 +126,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Text and document are stored together as one record, so reopening a
+    // 5. Text and document are stored together as one record, so reopening a
     //    past chat restores both halves of the screen.
     const form = new FormData();
     form.append("job_title", application.job_title);

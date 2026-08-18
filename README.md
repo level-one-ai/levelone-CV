@@ -23,6 +23,7 @@ The same content is in `scripts/cv-content.mjs`, loadable with `npm run seed:cv`
 ```
 Paste advert  ─▶  POST /api/generate-application
                     1. PocketBase → master CV, projects and your photo
+                    1b. duplicates → have you applied to this one already?
                     2. Gemini     → structured JSON, tailored to the advert
                     3. cv-html.ts → fills the HTML template's {{placeholders}}
                     4. pdf.ts     → headless Chromium prints an A4 PDF, in memory
@@ -99,11 +100,32 @@ npm run seed:cv                      # load the CV content
 npm run build                        # production build
 ```
 
+`seed:cv --force` rebuilds your profile row from `scripts/cv-content.mjs`,
+which deletes the old one — including an uploaded photo and anything typed
+straight into PocketBase that the file does not carry. It now works out what
+would be lost, names it, and stops. Only `--force --yes` goes through with it.
+
 `setup:pocketbase` is additive only — it never drops a collection, never edits
 or removes an existing field, and never touches API rules, so it is safe to
 re-run against a database that already holds your CV. The schema it applies
 lives in `scripts/pocketbase-schema.mjs`, which is the single source of truth
 for what the collections must contain.
+
+## Applying twice
+
+Before anything is generated, the pasted advert is checked against the last 200
+applications (`lib/duplicates.ts`). Three signals, strongest first: a
+fingerprint of the normalised text catches a straight re-paste; word
+containment at 0.9 catches a trimmed or messier copy; and the stored company
+*and* job title both appearing catches the same job found on another board.
+
+A match returns **409** with the existing record, and the UI offers to open it
+or to generate anyway. It **warns, never blocks** — re-applying months later is
+legitimate. The check runs before Gemini, so noticing a repeat costs nothing.
+
+Both the company and the title are required for the third signal on purpose. A
+second, unrelated vacancy at an employer you have applied to before is not a
+duplicate, and a warning that cries wolf gets ignored on the day it is right.
 
 ## How applications are stored
 
