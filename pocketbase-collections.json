@@ -1,0 +1,249 @@
+[
+  {
+    "name": "cv_profile",
+    "type": "base",
+    "listRule": null,
+    "viewRule": null,
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "name": "full_name",
+        "type": "text"
+      },
+      {
+        "name": "headline",
+        "type": "text"
+      },
+      {
+        "name": "email",
+        "type": "text"
+      },
+      {
+        "name": "phone",
+        "type": "text"
+      },
+      {
+        "name": "location",
+        "type": "text"
+      },
+      {
+        "name": "links",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "master_summary",
+        "type": "text"
+      },
+      {
+        "name": "skills",
+        "type": "text",
+        "max": 5000
+      },
+      {
+        "name": "tools",
+        "type": "text",
+        "max": 5000
+      },
+      {
+        "name": "education",
+        "type": "text",
+        "max": 5000
+      },
+      {
+        "name": "photo",
+        "type": "file",
+        "maxSelect": 1,
+        "maxSize": 5242880,
+        "mimeTypes": [
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ],
+        "protected": true
+      }
+    ],
+    "indexes": []
+  },
+  {
+    "name": "cv_experience",
+    "type": "base",
+    "listRule": null,
+    "viewRule": null,
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "name": "company",
+        "type": "text"
+      },
+      {
+        "name": "role",
+        "type": "text"
+      },
+      {
+        "name": "start_date",
+        "type": "text"
+      },
+      {
+        "name": "end_date",
+        "type": "text"
+      },
+      {
+        "name": "location",
+        "type": "text"
+      },
+      {
+        "name": "bullets",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "order",
+        "type": "number"
+      }
+    ],
+    "indexes": []
+  },
+  {
+    "name": "cv_projects",
+    "type": "base",
+    "listRule": null,
+    "viewRule": null,
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "name": "name",
+        "type": "text"
+      },
+      {
+        "name": "role",
+        "type": "text"
+      },
+      {
+        "name": "description",
+        "type": "text"
+      },
+      {
+        "name": "tech",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "outcome",
+        "type": "text"
+      },
+      {
+        "name": "link",
+        "type": "text"
+      },
+      {
+        "name": "order",
+        "type": "number"
+      }
+    ],
+    "indexes": []
+  },
+  {
+    "name": "cv_template",
+    "type": "base",
+    "listRule": null,
+    "viewRule": null,
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "name": "name",
+        "type": "text"
+      },
+      {
+        "name": "html",
+        "type": "text",
+        "max": 200000
+      }
+    ],
+    "indexes": []
+  },
+  {
+    "name": "applications",
+    "type": "base",
+    "listRule": null,
+    "viewRule": null,
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "name": "job_title",
+        "type": "text"
+      },
+      {
+        "name": "company",
+        "type": "text"
+      },
+      {
+        "name": "cv_headline",
+        "type": "text"
+      },
+      {
+        "name": "job_description",
+        "type": "text",
+        "max": 30000
+      },
+      {
+        "name": "tailored_intro",
+        "type": "text"
+      },
+      {
+        "name": "resume_summary",
+        "type": "text"
+      },
+      {
+        "name": "skills_matched",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "tailored_experience",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "tailored_projects",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "screening_answers",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "pdf",
+        "type": "file",
+        "maxSelect": 1,
+        "maxSize": 5242880,
+        "protected": true
+      },
+      {
+        "name": "created",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "name": "updated",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": []
+  }
+]

@@ -4,6 +4,7 @@
  *
  *   npm run setup:pocketbase
  *   npm run setup:pocketbase -- --dry-run    (show what would change, write nothing)
+ *   npm run setup:pocketbase -- --json       (print import JSON, touch nothing)
  *
  * It reads the same three settings the app itself uses, from .env.local:
  * NEXT_PUBLIC_POCKETBASE_URL, POCKETBASE_ADMIN_EMAIL, POCKETBASE_ADMIN_PASSWORD.
@@ -18,7 +19,7 @@
  *
  * The worst it can do is add something.
  */
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import PocketBase from "pocketbase";
@@ -26,6 +27,7 @@ import PocketBase from "pocketbase";
 import { COLLECTIONS } from "./pocketbase-schema.mjs";
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const JSON_ONLY = process.argv.includes("--json");
 
 const tick = "✓";
 const cross = "✗";
@@ -120,6 +122,53 @@ function describe(err, url, isAuthStep = false) {
   return `PocketBase error ${status}${detail ? ` — ${detail}` : ""}: ${
     err?.response?.message ?? err?.message ?? "unknown error"
   }`;
+}
+
+/**
+ * Builds JSON for PocketBase's Admin UI -> Settings -> Import collections.
+ *
+ * Two rules learned the hard way, by testing against PocketBase 0.39.10
+ * rather than by reading the docs:
+ *
+ *   1. NO `id` ANYWHERE. PocketBase matches an incoming collection to an
+ *      existing one by id. Hardcode an id that does not match and it tries to
+ *      CREATE a second collection with a name that is already taken, which
+ *      fails on a UNIQUE constraint — and because the import is atomic, the
+ *      whole paste is rejected and nothing changes. With no id it matches by
+ *      name and merges, whether the collection exists yet or not.
+ *
+ *   2. Options are FLATTENED onto the field (`"max": 30000`), not nested in
+ *      an `options` object. The nested form is the pre-0.23 shape.
+ *
+ * Rules are emitted as explicit nulls. An empty string is not "no rule" in
+ * PocketBase — it is a rule that always passes, which would make a CV
+ * containing a home address and phone number readable by anyone.
+ */
+function toImportJson() {
+  return COLLECTIONS.map((collection) => ({
+    name: collection.name,
+    type: "base",
+    listRule: null,
+    viewRule: null,
+    createRule: null,
+    updateRule: null,
+    deleteRule: null,
+    fields: collection.fields.map((field) => ({ ...field })),
+    indexes: [],
+  }));
+}
+
+if (JSON_ONLY) {
+  const json = JSON.stringify(toImportJson(), null, 2);
+  const out = path.join(process.cwd(), "pocketbase-collections.json");
+  await writeFile(out, json + "\n", "utf8");
+  console.log(json);
+  console.error(`\n${tick} Written to ${out}`);
+  console.error(
+    "  Paste the contents into PocketBase: Settings -> Import collections.\n" +
+      "  It creates the tables only. Load your CV content with: npm run seed:cv\n"
+  );
+  process.exit(0);
 }
 
 // --------------------------------------------------------------------------

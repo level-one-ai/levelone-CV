@@ -3,14 +3,58 @@
 This is every table the app uses, every field inside it, and an example of what
 to type in each one.
 
-**You do not have to build these by hand.** One command makes all five:
+**You do not have to build these by hand.** There are two ways to make them.
+
+**Way 1 — one command:**
 
 ```bash
 npm run setup:pocketbase
 ```
 
+**Way 2 — paste JSON into the admin page.** Open
+[`pocketbase-collections.json`](./pocketbase-collections.json), copy all of it,
+then in PocketBase go to **Settings → Import collections** and paste it in.
+Regenerate that file any time with:
+
+```bash
+npm run setup:pocketbase -- --json
+```
+
+Both routes produce exactly the same tables. This was checked by building one
+database each way and comparing them field by field.
+
 This page is here so you know what it built, what to type where, and what to
 check if something looks wrong.
+
+---
+
+## If your import "does nothing"
+
+Tested against PocketBase 0.39.10, so these are measured, not guessed.
+
+**The usual cause is an `id` in your JSON.** PocketBase matches an incoming
+collection to an existing one by its **id**, not its name. If your JSON hardcodes
+an id that does not match the one PocketBase generated, it tries to *create* a
+second collection with a name that is already taken, hits a
+`UNIQUE constraint failed: _collections.name` error, and — because the import is
+all-or-nothing — **rejects the entire paste**. Nothing changes, which looks
+exactly like "it did not add the fields".
+
+**The fix: delete every `"id"` line**, from the collections and from the fields.
+With no ids, PocketBase matches by name and merges, whether the collection
+already exists or not. The generated file has no ids for this reason.
+
+Two more things worth knowing:
+
+- **Field options must be flattened.** Write `"max": 30000` directly on the
+  field. The older `"options": { "max": 30000 }` shape is pre-0.23.
+- **`"listRule": ""` is not "no rule".** An empty string is a rule that always
+  passes, which makes that collection readable by anyone who can reach your
+  PocketBase — your address and phone number included. `null` is what locks it
+  to you. Every rule in the generated file is `null`.
+
+**The import screen creates tables only. It cannot load records.** For your
+actual CV content, use `npm run seed:cv` after importing.
 
 ---
 

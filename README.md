@@ -78,6 +78,8 @@ Then open http://localhost:3000.
 ```bash
 npm run setup:pocketbase             # build the five collections
 npm run setup:pocketbase -- --dry-run # ...or just report what's missing
+npm run setup:pocketbase -- --json   # ...or emit JSON for Import collections
+npm run seed:cv                      # load the CV content
 npm run build                        # production build
 ```
 
