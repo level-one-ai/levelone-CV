@@ -36,7 +36,7 @@ const responseSchema = {
     resume_summary: {
       type: Type.STRING,
       description:
-        "A 3-4 sentence CV professional summary rewritten for this advert, first person implied (no 'I'), British English.",
+        "The CV profile paragraph: 3-4 sentences, 50-75 words, British English, no pronouns. Sentence one must be a noun phrase naming the role and scale, never a verb.",
     },
     skills_matched: {
       type: Type.ARRAY,
@@ -60,7 +60,7 @@ const responseSchema = {
           bullets: {
             type: Type.ARRAY,
             description:
-              "3-5 achievement bullets, each starting with a past-tense verb and keeping any real numbers.",
+              "3-4 bullets for the current role and 1-2 for older ones, 14-24 words each, each starting with a verb and keeping any real numbers.",
             items: { type: Type.STRING },
           },
         },
@@ -71,7 +71,7 @@ const responseSchema = {
     tailored_projects: {
       type: Type.ARRAY,
       description:
-        "The candidate's real projects, re-ordered so the ones closest to this advert come first, and re-described to lead with what this employer cares about. Never invent a project. Include at most 4.",
+        "Exactly 3 of the candidate's real projects, closest fit first, each re-described in one 20-30 word sentence. Never invent a project. Never name a client company anywhere in these fields.",
       items: {
         type: Type.OBJECT,
         properties: {
@@ -79,7 +79,7 @@ const responseSchema = {
           description: {
             type: Type.STRING,
             description:
-              "One or two sentences, leading with the outcome that matters to this advert.",
+              "One sentence, 20-30 words, leading with the outcome that matters to this advert. No client company names.",
           },
           tech: {
             type: Type.STRING,
@@ -170,11 +170,51 @@ with no honest match are simply left alone.
    honest title instead. Title case.
 
 2. PROFESSIONAL SUMMARY
-   Three or four sentences, 55 to 85 words, for the PROFILE block. Sentence one
-   names what they are and their strongest relevant proof. The rest map their
-   history onto this advert's top requirements. Third person with no pronouns,
-   as CV summaries are written ("Builds automation systems...", not "I build").
-   No pronoun should appear at all.
+   The PROFILE paragraph. This is the part recruiters actually read, and the
+   part that most obviously exposes machine writing, so follow these rules
+   exactly.
+
+   Length: 3 to 4 sentences, 50 to 75 words. This is a ceiling, not a target.
+   Anything longer gets skipped.
+
+   SENTENCE ONE MUST BE A NOUN PHRASE naming what the candidate is, with the
+   seniority and scale that makes them credible for this advert. It must not
+   begin with a verb.
+     Right: "Automation engineer with four years building production AI
+             systems for small businesses."
+     Wrong: "Builds automation systems for small businesses."
+
+   NEVER open two sentences in a row with a bare verb. The pattern
+   "Demonstrates... Combines... Focuses..." is the single clearest sign a
+   machine wrote the paragraph. Banned as sentence openers entirely:
+   Demonstrates, Combines, Focuses, Leverages, Specialises, Specializes,
+   Delivers, Utilises, Utilizes, Brings, Possesses, Adept, Proven, Skilled in.
+   Vary the shape of your sentences the way a person does.
+
+   No pronouns at all. Not "I", not "he", not "their own".
+
+   Sentences two to four map the candidate's real history onto this advert's
+   top requirements, naming specific tools and real numbers rather than
+   qualities. "Cut quoting time from three hours to eight minutes" earns its
+   place; "focuses on measurable operational efficiency" does not.
+
+   Every claim here must be provable further down the same CV. If a skill is
+   not backed by a bullet or a project below, it does not go in the summary.
+
+   These three are models for RHYTHM AND SHAPE ONLY. Never borrow a single
+   fact, number, employer or job title from them:
+     "Results-oriented Marketing Manager with 6+ years of experience leading
+      cross-functional teams and driving digital campaigns. Increased online
+      revenue by 35% through targeted SEO and content strategies. Skilled in
+      data analytics, brand positioning, and Agile project management."
+     "Accomplished Restaurant Manager transitioning to corporate project
+      management. Leverages 7 years of expertise in budget control, team
+      leadership, and process optimization. Eager to apply organizational and
+      stakeholder management skills to a dynamic tech environment."
+     "Dedicated History graduate specializing in contemporary politics and
+      policy research. Completed an internship at Wavewords Comms, delivering
+      historical data analyses for media production. Proficient in qualitative
+      research, technical writing, and cross-team communication."
 
 3. TOOLS
    Return 8 to 12 items chosen ONLY from the candidate's own tool list. Put the
@@ -195,9 +235,18 @@ with no honest match are simply left alone.
    plenty.
 
 5. FEATURED PROJECTS
-   Up to 4, re-ordered so the closest fit to this role comes first. One or two
-   sentences each, leading with the outcome this employer would care about. The
-   tech line lists only tools genuinely used on that project.
+   Exactly 3, re-ordered so the closest fit to this role comes first. One
+   sentence each, 20 to 30 words, leading with the outcome this employer would
+   care about. The tech line lists only tools genuinely used on that project.
+
+   CLIENT NAMES ARE CONFIDENTIAL. Never print the name of a client, customer or
+   end company anywhere in a project name, description or tech line, even when
+   the candidate's own notes include it. Replace it with a description of the
+   sector and size: "a trade e-commerce client", "a logistics operator", "a
+   construction firm". The candidate's own employers are named normally under
+   Work Experience; this rule covers the companies they built things FOR.
+   Strip any name in brackets from a project title: "Order Router (Acme Ltd)"
+   becomes "Order Router".
 
 You also write the cover note and the screening answers described in the schema.
 The cover note is first person and reads like a person wrote it. If the advert
@@ -226,7 +275,20 @@ supported: answer those in terms the candidate can stand behind.
    from three hours to eight minutes" beats "improved efficiency". If no number
    exists, name the concrete thing built or changed instead of reaching for a
    vague intensifier.
-6. LENGTH. The CV must fit two pages of A4 at most. Respect the counts above.
+6. LENGTH. The CV must fit ONE side of A4. There is no shrinking to make it
+   fit, so staying inside this budget is your job, not the layout's:
+
+     Summary          50-75 words
+     Jobs             the 2 most recent; older ones as a single combined entry
+     Bullets          3-4 on the current role, 1-2 on each older one
+     Bullet length    14-24 words
+     Projects         exactly 3, one sentence of 20-30 words each
+     Tools            10-12
+
+   That comes to roughly 330-420 words of tailored content in total. If you are
+   over, CUT rather than compress: drop the weakest bullet entirely instead of
+   squeezing five onto four lines. A shorter CV that fits beats a complete one
+   that spills onto a second page.
 7. NO META. Never mention the advert, this instruction, the tailoring process,
    or yourself. Never write "as requested" or "based on the job description".
    The reader must see a CV, not the output of a tool.`;
@@ -329,7 +391,81 @@ export async function generateApplication(
 
   // The schema guarantees the keys exist, but a model can still answer with
   // empty arrays. Normalising here keeps every consumer free of null checks.
+/**
+ * Names that must never reach a generated CV, from CV_REDACT_NAMES.
+ *
+ * The prompt already forbids printing a client's name, but a prompt is a
+ * request and this is a contractual obligation — one slip publishes a name
+ * someone is under NDA about. So the same rule is enforced again here, in
+ * plain string replacement, where the model gets no say.
+ */
+function redactionList(): string[] {
+  return (process.env.CV_REDACT_NAMES ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean)
+    // Longest first, so "Acme Logistics Ltd" is caught before "Acme".
+    .sort((a, b) => b.length - a.length);
+}
+
+/** What a redacted name is replaced with. */
+const REDACTED = "a client";
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Strips every configured name from a string, along with the bracketed
+ * wrapper it usually sits in — "Order Router (Acme Ltd)" should become
+ * "Order Router", not "Order Router (a client)".
+ */
+function redact(value: string, names: string[]): string {
+  let out = value;
+  for (const name of names) {
+    const escaped = escapeRegExp(name);
+    out = out
+      .replace(new RegExp(`\\s*[([]\\s*${escaped}\\s*[)\\]]`, "gi"), "")
+      .replace(new RegExp(`\\s+(?:for|at|with)\\s+${escaped}\\b`, "gi"), "")
+      .replace(new RegExp(escaped, "gi"), REDACTED);
+  }
+  return out.replace(/\s{2,}/g, " ").trim();
+}
+
+/** Applies the redaction list across every field a name could hide in. */
+function redactApplication(
+  application: GeneratedApplication
+): GeneratedApplication {
+  const names = redactionList();
+  if (names.length === 0) return application;
+
+  const r = (value: string) => redact(value, names);
+
   return {
+    ...application,
+    cv_headline: r(application.cv_headline),
+    tailored_intro: r(application.tailored_intro),
+    resume_summary: r(application.resume_summary),
+    skills_matched: application.skills_matched.map(r),
+    tailored_experience: application.tailored_experience.map((job) => ({
+      ...job,
+      // The candidate's OWN employer stays named; only the text around it is
+      // scrubbed, since that is where a client tends to be mentioned.
+      bullets: job.bullets.map(r),
+    })),
+    tailored_projects: application.tailored_projects.map((project) => ({
+      name: r(project.name),
+      description: r(project.description),
+      tech: r(project.tech),
+    })),
+    screening_answers: application.screening_answers.map((qa) => ({
+      question: r(qa.question),
+      answer: r(qa.answer),
+    })),
+  };
+}
+
+  return redactApplication({
     job_title: parsed.job_title?.trim() || "Untitled role",
     company: parsed.company?.trim() || "",
     cv_headline: parsed.cv_headline?.trim() || "",
@@ -339,7 +475,7 @@ export async function generateApplication(
     tailored_experience: parsed.tailored_experience ?? [],
     tailored_projects: parsed.tailored_projects ?? [],
     screening_answers: parsed.screening_answers ?? [],
-  };
+  });
 }
 
 function describeGeminiError(err: unknown): Error {

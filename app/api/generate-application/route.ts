@@ -61,8 +61,18 @@ export async function POST(request: Request) {
       loadProfilePhoto(pb, cv.profile),
     ]);
     const html = buildCvHtml({ template, application, cv, photo });
-    const pdf = await renderPdf(html);
+    const { bytes: pdf, pages } = await renderPdf(html);
     const fileName = buildFileName(application, cv.profile.full_name);
+
+    // The CV is never scaled or clipped to force one page, so a long one
+    // simply becomes two. Say so rather than letting it be discovered by an
+    // employer.
+    if (pages > 1) {
+      console.warn(
+        `[generate-application] CV ran to ${pages} pages. Trim the content budget: ` +
+          "summary 50-75 words, 3-4 bullets on the current role, 3 projects, 10-12 tools."
+      );
+    }
 
     // 4. Text and document are stored together as one record, so reopening a
     //    past chat restores both halves of the screen.

@@ -89,7 +89,23 @@ function describeLaunchFailure(err: unknown): Error {
   return new Error(`Could not render the PDF: ${message}`);
 }
 
-export async function renderPdf(html: string): Promise<Buffer> {
+export interface RenderedPdf {
+  bytes: Buffer;
+  /** How many A4 sides the CV actually came to. */
+  pages: number;
+}
+
+/**
+ * Counts pages without a PDF parser. Chromium writes one /Type /Page object
+ * per sheet, and /Type /Pages (plural) once for the tree — the negative
+ * lookahead is what keeps the tree node out of the count.
+ */
+function countPages(pdf: Buffer): number {
+  const matches = pdf.toString("latin1").match(/\/Type\s*\/Page(?![s])/g);
+  return matches ? matches.length : 1;
+}
+
+export async function renderPdf(html: string): Promise<RenderedPdf> {
   let browser: Browser | undefined;
 
   try {
@@ -119,7 +135,8 @@ export async function renderPdf(html: string): Promise<Buffer> {
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
     });
 
-    return Buffer.from(pdf);
+    const bytes = Buffer.from(pdf);
+    return { bytes, pages: countPages(bytes) };
   } finally {
     // Always close, even if page.pdf threw — a leaked Chromium is several
     // hundred MB that never comes back.

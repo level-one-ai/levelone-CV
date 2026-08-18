@@ -38,6 +38,7 @@ reason: **they are secret**. The code goes on GitHub. This file never does.
 | `GEMINI_MODEL` | You pick one from a list | Easy |
 | `GEMINI_CV_PROMPT` | **Optional** — leave blank | None |
 | `PDF_CHROMIUM_PATH` | **Optional** — leave blank | None |
+| `CV_REDACT_NAMES` | **Optional** — client names to hide | None |
 
 Only **one** of them comes from a website. Two you invent. The rest already
 work as they are.
@@ -403,9 +404,10 @@ GEMINI_API_KEY=AIzaSyC...
 # Which AI model writes your applications
 GEMINI_MODEL=gemini-2.5-flash
 
-# Optional — leave both blank
+# Optional — leave these blank unless you need them
 GEMINI_CV_PROMPT=
 PDF_CHROMIUM_PATH=
+CV_REDACT_NAMES=
 ```
 
 Save the file.
@@ -468,6 +470,31 @@ GEMINI_API_KEY = AIzaSyC123      ← wrong
 **4. Editing the wrong file.** `.env.example` is the blank template. Your real
 one is `.env.local`. If nothing you type seems to make a difference, check
 which file is open.
+
+---
+
+## Optional: `CV_REDACT_NAMES`
+
+**What it is:** client names that must never appear on a CV.
+
+If you have worked for clients you are under contract not to name, list them
+here, separated by commas:
+
+```
+CV_REDACT_NAMES=Grove Group, Trader Brothers, Cekra
+```
+
+Any of those names is stripped out of the finished CV and replaced with
+"a client". Brackets go too, so `Order Router (Grove Group)` becomes
+`Order Router`.
+
+**Why this exists.** The AI is already told never to print a client's name. But
+an instruction to an AI is a request, and this is a contract. This setting is
+enforced in code after the AI has finished, so it holds no matter what the AI
+writes.
+
+**Better still:** do not type the client name into `cv_projects` in the first
+place. You cannot leak a name that was never there.
 
 ---
 

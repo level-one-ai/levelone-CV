@@ -199,6 +199,38 @@ Write more bullets than you need. The AI picks the ones that match each advert.
 `tech` is a JSON list, same rules as `bullets`: square brackets, quotes around
 each item, commas between.
 
+### Keeping your clients anonymous
+
+**Do not put a client's company name in `name` or `description`.** If you are
+under contract not to name who you worked for, the safest anonymising is not
+typing the name at all.
+
+Instead of:
+
+```
+Operations Command Center & Automated Document Router (Grove Group)
+```
+
+write:
+
+```
+Operations Command Centre & Automated Document Router
+```
+
+and describe the client by sector in the description: "a trade e-commerce
+client", "a logistics operator".
+
+**There is a safety net as well.** Set `CV_REDACT_NAMES` in `.env.local` to a
+comma-separated list of names, and they are stripped out of every generated CV
+in code, whatever the AI writes:
+
+```
+CV_REDACT_NAMES=Grove Group, Trader Brothers, Cekra
+```
+
+The AI is told not to print client names too, but an instruction is a request.
+This one is enforced.
+
 ---
 
 ## 4. `cv_template`

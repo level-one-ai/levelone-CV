@@ -249,7 +249,10 @@
   .main {
     flex: 1;
     min-width: 0;
-    padding: 14mm 12mm 14mm;
+    /* Trimmed from 14mm. The header block was taking a third of the page in
+       whitespace alone; this buys back the space a fourth bullet needs
+       without touching a single font size. */
+    padding: 11mm 12mm 10mm;
   }
 
   .name {
@@ -267,7 +270,7 @@
   }
 
   .headline {
-    margin: 5mm 0 0;
+    margin: 4mm 0 0;
     font-size: 10pt;
     letter-spacing: 0.24em;
     text-transform: uppercase;
@@ -277,7 +280,7 @@
   .rule {
     height: 0.3mm;
     background: var(--line);
-    margin: 8mm 0;
+    margin: 6mm 0;
   }
 
   .main h2 {
@@ -289,7 +292,7 @@
   }
 
   .main section + section {
-    margin-top: 8mm;
+    margin-top: 6.5mm;
   }
 
   .profile-text {
@@ -297,8 +300,15 @@
     color: #2b2a26;
   }
 
+  /* Never let a single stray line be what pushes the CV onto a second sheet. */
+  p,
+  li {
+    orphans: 2;
+    widows: 2;
+  }
+
   .job {
-    margin-bottom: 6mm;
+    margin-bottom: 5mm;
     page-break-inside: avoid;
   }
 
