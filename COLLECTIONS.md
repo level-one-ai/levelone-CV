@@ -178,6 +178,8 @@ Click the field, click **Upload file**, pick your headshot.
 
 - A square picture works best. It is cropped to a square on the CV.
 - It is printed in black and white, to match the design.
+- The bottom edge fades into the dark sidebar, so keep your face in the
+  upper two thirds of the picture. The fade is shallow and never reaches it.
 - Under 5MB. `.jpg`, `.png` or `.webp`.
 - No photo? The CV still works — that panel shows a plain Level One block.
 

@@ -29,7 +29,7 @@
        {{full_name}}          your full name
        {{first_name}}         first name (for the stacked heading)
        {{last_name}}          surname
-       {{photo_html}}         your headshot
+       {{photo_html}}         your headshot, faded into the sidebar
        {{contact_html}}       phone, address, email, links
        {{skills_html}}        SKILLS — the human ones
        {{education_html}}     schools, qualifications, grades
@@ -122,12 +122,42 @@
     break-inside: avoid;
   }
 
+  /* The photo sits in a frame so the fade has something to paint onto.
+     Without a wrapper there is nowhere to put the gradient: an ::after on
+     the <img> itself never renders, because a replaced element has no
+     generated content. */
+  .photo-frame {
+    position: relative;
+    width: 100%;
+  }
+
   .photo {
     width: 100%;
     height: 48mm;
     object-fit: cover;
     display: block;
     filter: grayscale(100%) contrast(108%);
+  }
+
+  /* Only the bottom of the picture dissolves into the sidebar ink — 11mm of
+     a 48mm photo, so roughly the lowest fifth. Deliberately shallow: any
+     deeper and it starts eating the face. The first stop is TRANSPARENT
+     rather than a pale colour, so there is no grey band where the fade
+     begins, and the last stop is exactly --ink, the same colour the body
+     gradient paints the sidebar stripe, so the two meet with no seam. */
+  .photo-frame::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 11mm;
+    background: linear-gradient(
+      to bottom,
+      rgba(17, 17, 16, 0) 0%,
+      rgba(17, 17, 16, 0.55) 45%,
+      rgba(17, 17, 16, 1) 100%
+    );
   }
 
   /* Shown only when no photo has been uploaded, so the layout never
@@ -361,7 +391,8 @@
 <body>
   <div class="sheet">
     <aside class="sidebar">
-      <!-- FIXED: your headshot, from cv_profile.photo -->
+      <!-- FIXED: your headshot, from cv_profile.photo. Uploaded there, not
+           linked: the app inlines the file so printing needs no network. -->
       {{photo_html}}
 
       <div class="sidebar-body">

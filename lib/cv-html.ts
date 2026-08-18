@@ -94,7 +94,15 @@ function photoBlock(photo: { data: Buffer; mime: string } | null): string {
   const base64 = photo.data.toString("base64");
   // Inlined as a data URI so Chromium never has to fetch anything: no network,
   // no PocketBase token in the markup, no race between load and print.
-  return `<img class="photo" src="data:${photo.mime};base64,${base64}" alt="" />`;
+  //
+  // The .photo-frame wrapper is what carries the fade into the sidebar. The
+  // gradient cannot live on the <img> itself — a replaced element has no
+  // generated content, so ::after on an image never renders.
+  return (
+    `<div class="photo-frame">` +
+    `<img class="photo" src="data:${photo.mime};base64,${base64}" alt="" />` +
+    `</div>`
+  );
 }
 
 function contactBlock(cv: MasterCv): string {

@@ -174,7 +174,7 @@ with no honest match are simply left alone.
    part that most obviously exposes machine writing, so follow these rules
    exactly.
 
-   Length: 3 to 4 sentences, 50 to 75 words. This is a ceiling, not a target.
+   Length: 3 to 5 sentences, 50 to 75 words. This is a ceiling, not a target.
    Anything longer gets skipped.
 
    SENTENCE ONE MUST BE A NOUN PHRASE naming what the candidate is, with the
@@ -193,9 +193,9 @@ with no honest match are simply left alone.
 
    No pronouns at all. Not "I", not "he", not "their own".
 
-   Sentences two to four map the candidate's real history onto this advert's
-   top requirements, naming specific tools and real numbers rather than
-   qualities. "Cut quoting time from three hours to eight minutes" earns its
+   Every sentence after the first maps the candidate's real history onto this
+   advert's top requirements, naming specific tools and real numbers rather
+   than qualities. "Cut quoting time from three hours to eight minutes" earns its
    place; "focuses on measurable operational efficiency" does not.
 
    Every claim here must be provable further down the same CV. If a skill is
