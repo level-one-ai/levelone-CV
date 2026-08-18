@@ -13,6 +13,9 @@ breaks when it is wrong, and how to check it.
 **Need the database layout? Read [COLLECTIONS.md](./COLLECTIONS.md).** Every
 collection, every field, and an example of what to type in each one.
 
+**Want Dean's actual values ready to paste? Read [MY-CV-DATA.md](./MY-CV-DATA.md).**
+The same content is in `scripts/cv-content.mjs`, loadable with `npm run seed:cv`.
+
 ---
 
 ## How it works
