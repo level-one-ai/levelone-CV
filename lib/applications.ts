@@ -35,6 +35,7 @@ export function toApplicationRecord(record: RecordModel): ApplicationRecord {
     tailored_intro: String(record.tailored_intro ?? ""),
     resume_summary: String(record.resume_summary ?? ""),
     skills_matched: parseJson<string[]>(record.skills_matched, []),
+    skills_selected: parseJson<string[]>(record.skills_selected, []),
     tailored_experience: parseJson<TailoredExperience[]>(
       record.tailored_experience,
       []

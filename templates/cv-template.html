@@ -2,7 +2,7 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8" />
-<title>{{full_name}} — CV</title>
+<title>full_name — CV</title>
 <style>
   /* ==================================================================
      Level One CV — A4, print-first.
@@ -17,37 +17,46 @@
 
      TAILORED — rewritten for every job advert you paste in:
 
-       {{headline}}           job title under your name
-       {{summary}}            the PROFILE paragraph
-       {{tools_html}}         TOOLS, re-ordered so the advert's own
-                              tools come first
-       {{experience_html}}    your jobs, bullets rewritten
-       {{projects_html}}      your projects, re-ordered and re-described
+       headline           job title under your name
+       summary            the PROFILE paragraph
+       tools_html         TOOLS — a shortlist for this advert, not
+                              your whole inventory
+       skills_html        SKILLS — chosen from your own list, printed
+                              in your own words
+       experience_html    your jobs — ONE sentence each
+       projects_html      the best TWO projects for this role
 
      FIXED — printed exactly as you typed it in PocketBase, every time:
 
-       {{full_name}}          your full name
-       {{first_name}}         first name (for the stacked heading)
-       {{last_name}}          surname
-       {{photo_html}}         your headshot, faded into the sidebar
-       {{contact_html}}       phone, address, email, links
-       {{skills_html}}        SKILLS — the human ones
-       {{education_html}}     schools, qualifications, grades
+       full_name          your full name
+       first_name         first name (for the stacked heading)
+       last_name          surname
+       photo_html         your headshot, faded into the sidebar
+       contact_html       phone, address, email
+       links_html         portfolio, LinkedIn, GitHub — clickable
+       education_html     schools, qualifications, grades
 
      ALSO AVAILABLE — not used in this layout, but they work if you
      want them:
 
-       {{job_title}}          the advert's job title
-       {{company}}            the hiring company
-       {{email}} {{phone}} {{location}}
+       job_title          the advert's job title
+       company            the hiring company
+       email phone location
 
-     Two kinds of placeholder:
-       {{scalar}}       one value, e.g. {{full_name}}
-       {{name_html}}    a block the app builds. Move it wherever you
-                        like, but do not try to write inside it.
+     The names above are listed WITHOUT their braces on purpose. This
+     block is a CSS comment, and written as real placeholders the app
+     would substitute your CV into it — harmless until a job
+     description contains the two characters that end a CSS comment,
+     at which point the whole design would fall over. In the markup
+     further down, wrap each name in double curly braces.
+
+     Two kinds:
+       scalar         one value, e.g. full_name
+       name_html      a block the app builds. Move it wherever you
+                      like, but do not try to write inside it.
 
      A placeholder the app does not recognise is replaced with nothing,
-     so a typo leaves a gap rather than printing {{braces}} on your CV.
+     so a typo leaves a gap rather than printing braces on your CV.
 
      Colours are the Level One palette, same as the web app.
      ================================================================== */
@@ -204,6 +213,30 @@
   .contact-value {
     font-size: 8.8pt;
     color: var(--on-dark-muted);
+    word-break: break-word;
+  }
+
+  /* ------------------------------ links ---------------------------- */
+
+  .link-item {
+    margin-bottom: 1.8mm;
+  }
+
+  .link-label {
+    font-weight: 700;
+    font-size: 8.8pt;
+    color: var(--on-dark);
+  }
+
+  /* A real anchor, so the address is clickable in the PDF. Underlines are
+     dropped because the column is narrow and a wrapped underlined URL is
+     harder to read, not easier. break-word keeps a long address inside the
+     68mm column instead of pushing the sidebar wider. */
+  .link-value {
+    display: block;
+    font-size: 8.8pt;
+    color: var(--on-dark-muted);
+    text-decoration: none;
     word-break: break-word;
   }
 
@@ -398,19 +431,26 @@
       <div class="sidebar-body">
         <section>
           <h2>Contact</h2>
-          <!-- FIXED: phone, address, email and links -->
+          <!-- FIXED: phone, address and email -->
           {{contact_html}}
         </section>
 
         <section>
+          <h2>Links</h2>
+          <!-- FIXED: from cv_profile.links. Nothing renders if it is empty. -->
+          {{links_html}}
+        </section>
+
+        <section>
           <h2>Skills</h2>
-          <!-- FIXED: your human skills, printed as written -->
+          <!-- TAILORED: which skills, chosen from your list.
+               The wording is always yours — see chooseSkills() in cv-html.ts. -->
           {{skills_html}}
         </section>
 
         <section>
           <h2>Tools</h2>
-          <!-- TAILORED: re-ordered so the advert's own tools come first -->
+          <!-- TAILORED: a shortlist for this advert, 6-8 of your tools -->
           {{tools_html}}
         </section>
 
@@ -439,13 +479,13 @@
 
       <section>
         <h2>Work Experience</h2>
-        <!-- TAILORED: same real jobs, bullets rewritten for this employer -->
+        <!-- TAILORED: same real jobs, ONE sentence each -->
         {{experience_html}}
       </section>
 
       <section>
         <h2>Featured Projects</h2>
-        <!-- TAILORED: re-ordered and re-described for this role -->
+        <!-- TAILORED: the best TWO for this role, re-described -->
         {{projects_html}}
       </section>
     </main>

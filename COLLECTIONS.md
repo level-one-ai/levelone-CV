@@ -105,7 +105,12 @@ This one is JSON, so the shape matters. Copy this and change the addresses:
 Every part needs `"straight quotes"`. Put a comma between the lines, but not
 after the last one. If PocketBase turns the box red, a quote or comma is wrong.
 
-These appear in the CONTACT panel of your CV, with the `https://` trimmed off.
+These fill the **LINKS** panel of your CV, directly under Contact. Each one is
+a real clickable link in the PDF; the visible text drops the `https://` so a
+long address does not wrap onto three lines.
+
+**Leave this empty and the panel does not appear at all** — no empty heading.
+If your links are missing from a generated CV, this field is the place to look.
 
 ### `master_summary`
 
@@ -127,8 +132,14 @@ Problem-Solving, Client Communication, Systems Thinking, Project Management, Pro
 One line, separated by commas. No quotes, no brackets. Spacing does not matter,
 and new lines work too if you prefer one per line.
 
-**These are printed exactly as you write them.** The AI never re-orders or
-changes them, because "Problem-Solving" reads the same to every employer.
+**The AI picks which of these to print — 4 to 6 of them — but never changes
+the words.** Its choices are matched back against your list in code, so a skill
+you did not write cannot appear, and "Problem-Solving" cannot quietly become
+"Advanced Problem Resolution". Write more than you need; the ones that suit
+each advert get used.
+
+**These fill the SKILLS panel. Your links now have their own panel** directly
+under Contact, filled from the `links` field above.
 
 ### `tools` — the software you use
 

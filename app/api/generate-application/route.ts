@@ -136,6 +136,7 @@ export async function POST(request: Request) {
     form.append("tailored_intro", application.tailored_intro);
     form.append("resume_summary", application.resume_summary);
     form.append("skills_matched", JSON.stringify(application.skills_matched));
+    form.append("skills_selected", JSON.stringify(application.skills_selected));
     form.append(
       "tailored_experience",
       JSON.stringify(application.tailored_experience)

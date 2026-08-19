@@ -86,6 +86,12 @@ export interface GeneratedApplication {
   tailored_intro: string;
   resume_summary: string;
   skills_matched: string[];
+  /**
+   * The human skills chosen for this advert, from the candidate's own list.
+   * Filtered against that list in code before rendering, so nothing invented
+   * can reach the page.
+   */
+  skills_selected: string[];
   tailored_experience: TailoredExperience[];
   tailored_projects: TailoredProject[];
   screening_answers: ScreeningAnswer[];

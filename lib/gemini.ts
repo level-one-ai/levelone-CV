@@ -41,7 +41,13 @@ const responseSchema = {
     skills_matched: {
       type: Type.ARRAY,
       description:
-        "8-12 tools and platforms the candidate genuinely uses, re-ordered so the ones this advert names by title come first. Use the candidate's own tool list — never add a tool they have not listed. This is the list applicant tracking systems scan.",
+        "6-8 tools and platforms, chosen from the candidate's own tool list because THIS advert asks for them or they are the closest match to what it asks for. Not a dump of everything they know. Advert-named tools first. Never add a tool they have not listed.",
+      items: { type: Type.STRING },
+    },
+    skills_selected: {
+      type: Type.ARRAY,
+      description:
+        "4-6 of the candidate's HUMAN skills, copied word for word from their own skills list, keeping only the ones this advert actually calls for. Never reword one and never add one that is not on their list.",
       items: { type: Type.STRING },
     },
     tailored_experience: {
@@ -60,7 +66,7 @@ const responseSchema = {
           bullets: {
             type: Type.ARRAY,
             description:
-              "3-4 bullets for the current role and 1-2 for older ones, 14-24 words each, each starting with a verb and keeping any real numbers.",
+              "EXACTLY ONE sentence for this role. One item in the array, never two. 20-30 words, starting with a verb, leading with the outcome this employer cares about, keeping any real numbers exactly as given.",
             items: { type: Type.STRING },
           },
         },
@@ -71,7 +77,7 @@ const responseSchema = {
     tailored_projects: {
       type: Type.ARRAY,
       description:
-        "Exactly 3 of the candidate's real projects, closest fit first, each re-described in one 20-30 word sentence. Never invent a project. Never name a client company anywhere in these fields.",
+        "EXACTLY 2 of the candidate's real projects — the two that would most impress THIS employer, best first. Never three. Each re-described in one 20-30 word sentence. Never invent a project. Never name a client company anywhere in these fields.",
       items: {
         type: Type.OBJECT,
         properties: {
@@ -116,6 +122,7 @@ const responseSchema = {
     "tailored_intro",
     "resume_summary",
     "skills_matched",
+    "skills_selected",
     "tailored_experience",
     "tailored_projects",
     "screening_answers",
@@ -127,6 +134,7 @@ const responseSchema = {
     "tailored_intro",
     "resume_summary",
     "skills_matched",
+    "skills_selected",
     "tailored_experience",
     "tailored_projects",
     "screening_answers",
@@ -217,27 +225,51 @@ with no honest match are simply left alone.
       research, technical writing, and cross-team communication."
 
 3. TOOLS
-   Return 8 to 12 items chosen ONLY from the candidate's own tool list. Put the
-   tools this advert names by title first, in the advert's own spelling where it
-   refers to the same thing. Fill the remainder with their strongest related
-   tools. Never add a tool that is not on their list, however obviously it might
-   be implied. This list is what applicant tracking software reads, so it is the
-   highest-value thing you produce. Their human skills are printed separately,
-   exactly as they wrote them, and are not yours to touch.
+   Return 6 to 8 items, chosen ONLY from the candidate's own tool list.
 
-4. WORK EXPERIENCE BULLETS
-   Keep every real job, in the order given. For each, choose and rewrite the 3 to
-   5 bullets that matter most to THIS employer, strongest first. Every bullet:
-   starts with a past-tense verb (or present tense for a current role), shows an
-   outcome rather than a duty, and keeps every real number exactly as given.
-   Aim for 15 to 30 words each. Drop bullets that do nothing for this advert
-   rather than padding. If a role is old or unrelated, one or two lines is
-   plenty.
+   This is a SHORTLIST FOR THIS ADVERT, not an inventory. Include a tool only
+   because the advert asks for it, or because it is the closest thing on their
+   list to something the advert asks for. A tool the advert gives no reason to
+   mention is padding, and padding is what makes a reader stop reading.
 
-5. FEATURED PROJECTS
-   Exactly 3, re-ordered so the closest fit to this role comes first. One
-   sentence each, 20 to 30 words, leading with the outcome this employer would
-   care about. The tech line lists only tools genuinely used on that project.
+   Advert-named tools first, in the advert's own spelling where it means the
+   same thing. Never add a tool that is not on their list, however obviously it
+   might be implied.
+
+4. HUMAN SKILLS
+   Return 4 to 6, chosen ONLY from the candidate's own skills list.
+
+   Copy each one WORD FOR WORD. Do not reword, expand, merge or retitle them —
+   "Problem-Solving" is theirs, "Advanced Problem Resolution" is yours, and only
+   one of those is honest. Never add a skill that is not on their list.
+
+   Keep the ones this advert actually calls for. If it stresses stakeholder
+   management, their communication skill earns its place; if it never mentions
+   working with clients, it does not.
+
+5. WORK EXPERIENCE
+   Keep every real job, in the order given.
+
+   ONE SENTENCE PER JOB. Exactly one — not two, not a short list. One item in
+   the bullets array for each role. This is the hardest instruction here and the
+   one most worth getting right: a CV that says one true, specific thing per job
+   is read, and a CV that says four is skimmed.
+
+   That sentence: 20 to 30 words, starts with a verb (present tense for a
+   current role, past for the rest), leads with the OUTCOME this employer cares
+   about rather than the duty, and keeps every real number exactly as given.
+
+   Choose what to say by what this advert asks for. Everything else about the
+   job, however good, is left out.
+
+6. FEATURED PROJECTS
+   EXACTLY 2. Not three. The two that would most impress THIS employer — the
+   closest match to what they are hiring for, or the most impressive if nothing
+   matches closely. Best first.
+
+   One sentence each, 20 to 30 words, leading with the outcome this employer
+   would care about. The tech line lists only tools genuinely used on that
+   project.
 
    CLIENT NAMES ARE CONFIDENTIAL. Never print the name of a client, customer or
    end company anywhere in a project name, description or tech line, even when
@@ -279,16 +311,20 @@ supported: answer those in terms the candidate can stand behind.
    fit, so staying inside this budget is your job, not the layout's:
 
      Summary          50-75 words
-     Jobs             the 2 most recent; older ones as a single combined entry
-     Bullets          3-4 on the current role, 1-2 on each older one
-     Bullet length    14-24 words
-     Projects         exactly 3, one sentence of 20-30 words each
-     Tools            10-12
+     Jobs             every real job, older unrelated ones combined into one
+     Per job          EXACTLY ONE sentence, 20-30 words
+     Projects         EXACTLY 2, one sentence of 20-30 words each
+     Tools            6-8
+     Human skills     4-6
 
-   That comes to roughly 330-420 words of tailored content in total. If you are
-   over, CUT rather than compress: drop the weakest bullet entirely instead of
-   squeezing five onto four lines. A shorter CV that fits beats a complete one
-   that spills onto a second page.
+   That comes to roughly 200-260 words of tailored content in total. If you are
+   over, CUT rather than compress: drop the weakest thing entirely instead of
+   squeezing more onto the same lines. A shorter CV that fits beats a complete
+   one that spills onto a second page.
+
+   The counts above are limits, not targets to reach. Two strong projects beat
+   two strong ones plus a filler third, and there is no credit for using the
+   whole allowance.
 7. NO META. Never mention the advert, this instruction, the tailoring process,
    or yourself. Never write "as requested" or "based on the job description".
    The reader must see a CV, not the output of a tool.`;
@@ -337,11 +373,37 @@ function forbiddenNamesBlock(cv: MasterCv): string[] {
   ];
 }
 
+export /**
+ * Strips forbidden names from a multi-line block.
+ *
+ * `redact()` collapses runs of whitespace, which is right for a single field
+ * and catastrophic for a block — \s matches newlines, so one call would flatten
+ * the whole CV onto one line. Hence line by line, with the indentation put back.
+ */
+function redactBlock(text: string, names: string[]): string {
+  if (names.length === 0) return text;
+
+  return text
+    .split("\n")
+    .map((line) => {
+      const indent = line.match(/^\s*/)?.[0] ?? "";
+      const cleaned = redact(line, names);
+      return cleaned ? indent + cleaned : line.trim() ? indent : line;
+    })
+    .join("\n");
+}
+
 export function buildPrompt(jobDescription: string, cv: MasterCv): string {
+  // The candidate's own notes are scrubbed BEFORE the model sees them. Telling
+  // it not to print a client name is a request; not showing it the name in the
+  // first place is not. This is what closes the gap that let a client's name
+  // reach a finished CV: it was sitting in the project title all along.
+  const cvText = redactBlock(formatCvForPrompt(cv), forbiddenNames(cv));
+
   return [
     ...forbiddenNamesBlock(cv),
     "=== CANDIDATE MASTER CV ===",
-    formatCvForPrompt(cv),
+    cvText,
     "",
     "=== JOB ADVERT ===",
     jobDescription.trim(),
@@ -442,6 +504,7 @@ export function redactApplication(
     tailored_intro: r(application.tailored_intro),
     resume_summary: r(application.resume_summary),
     skills_matched: application.skills_matched.map(r),
+    skills_selected: application.skills_selected.map(r),
     tailored_experience: application.tailored_experience.map((job) => ({
       ...job,
       // The candidate's OWN employer stays named; only the text around it is
@@ -524,6 +587,7 @@ export async function generateApplication(
       tailored_intro: parsed.tailored_intro?.trim() || "",
       resume_summary: parsed.resume_summary?.trim() || "",
       skills_matched: parsed.skills_matched ?? [],
+      skills_selected: parsed.skills_selected ?? [],
       tailored_experience: parsed.tailored_experience ?? [],
       tailored_projects: parsed.tailored_projects ?? [],
       screening_answers: parsed.screening_answers ?? [],

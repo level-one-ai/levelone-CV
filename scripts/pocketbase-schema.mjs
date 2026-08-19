@@ -116,6 +116,8 @@ export const COLLECTIONS = [
       text("tailored_intro"),
       text("resume_summary"),
       json("skills_matched"),
+      // The human skills chosen for this advert, from your own list.
+      json("skills_selected"),
       json("tailored_experience"),
       json("tailored_projects"),
       json("screening_answers"),

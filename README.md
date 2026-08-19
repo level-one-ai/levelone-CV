@@ -73,7 +73,7 @@ PocketBase · `@google/genai` · `playwright-core` driving headless Chromium ·
 | `app/api/applications/*` | List, read, delete, and stream the PDF |
 | `lib/cv.ts` | Reads the master CV and flattens it for the prompt |
 | `lib/gemini.ts` | The prompt, the response schema, the error messages |
-| `lib/cv-html.ts` | Fills the CV template's placeholders |
+| `lib/cv-html.ts` | Fills the CV template's placeholders, and enforces the limits |
 | `lib/pdf.ts` | Prints the HTML to PDF with headless Chromium |
 | `components/` | Sidebar, composer, loader, cards, document viewer |
 | `templates/cv-template.html` | The default CV design, seeded into PocketBase |
@@ -110,6 +110,18 @@ or removes an existing field, and never touches API rules, so it is safe to
 re-run against a database that already holds your CV. The schema it applies
 lives in `scripts/pocketbase-schema.mjs`, which is the single source of truth
 for what the collections must contain.
+
+## Keeping it to one page
+
+The CV is never scaled or clipped to fit, so the limits are content limits, set
+in the prompt AND enforced in `lib/cv-html.ts` — one sentence per job, two
+projects, 6-8 tools, 4-6 skills. The prompt asks; the renderer makes sure, on
+the principle that a prompt is a request and a CV silently growing a second
+page is what we are trying to stop.
+
+Skills are chosen for the advert but never reworded: `chooseSkills()` matches
+the model's picks back against the master list and prints your spelling, so
+nothing invented reaches the page.
 
 ## Applying twice
 

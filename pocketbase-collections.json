@@ -214,6 +214,11 @@
         "maxSize": 2000000
       },
       {
+        "name": "skills_selected",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
         "name": "tailored_experience",
         "type": "json",
         "maxSize": 2000000

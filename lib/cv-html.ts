@@ -110,9 +110,8 @@ function contactBlock(cv: MasterCv): string {
   if (cv.profile.phone) rows.push(["Phone:", cv.profile.phone]);
   if (cv.profile.location) rows.push(["Address:", cv.profile.location]);
   if (cv.profile.email) rows.push(["Email:", cv.profile.email]);
-  for (const [label, url] of Object.entries(cv.profile.links)) {
-    rows.push([`${label}:`, url.replace(/^https?:\/\//, "")]);
-  }
+  // Links used to be appended here. They have their own section now, directly
+  // below, so they are not printed twice.
 
   return rows
     .map(
@@ -121,6 +120,63 @@ function contactBlock(cv: MasterCv): string {
         `<div class="contact-value">${esc(value)}</div></div>`
     )
     .join("\n");
+}
+
+/**
+ * The LINKS panel: portfolio, LinkedIn, GitHub, whatever is in
+ * cv_profile.links.
+ *
+ * Real anchors, so they are clickable in the finished PDF. The visible text
+ * drops the scheme and any trailing slash — the full "https://www..." string
+ * wraps onto three lines in a 68mm column and reads worse for saying more.
+ * The href keeps the whole address, so the link still works.
+ *
+ * No links configured means no section at all, rather than a heading with
+ * nothing under it.
+ */
+function linksBlock(cv: MasterCv): string {
+  const entries = Object.entries(cv.profile.links).filter(
+    ([, url]) => typeof url === "string" && url.trim()
+  );
+  if (!entries.length) return "";
+
+  return entries
+    .map(([label, url]) => {
+      const href = url.trim();
+      const shown = href.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+      return (
+        `<div class="link-item">` +
+        `<div class="link-label">${esc(label)}</div>` +
+        `<a class="link-value" href="${esc(href)}">${esc(shown)}</a>` +
+        `</div>`
+      );
+    })
+    .join("\n");
+}
+
+/**
+ * The SKILLS panel.
+ *
+ * Gemini now picks which of Dean's skills suit the advert, but it does not get
+ * to write them: its choices are matched back against the master list and the
+ * MASTER SPELLING is what prints. A skill he never wrote cannot appear, and
+ * "Problem-Solving" cannot quietly become "Advanced Problem Resolution".
+ *
+ * Anything unusable — no selection, or a selection that matches nothing — falls
+ * back to the full list. A CV with every skill beats a CV with none.
+ */
+function chooseSkills(master: string[], selected: string[]): string[] {
+  if (!selected.length) return master;
+
+  const byLower = new Map(master.map((skill) => [skill.toLowerCase(), skill]));
+  const kept: string[] = [];
+
+  for (const choice of selected) {
+    const match = byLower.get(String(choice).trim().toLowerCase());
+    if (match && !kept.includes(match)) kept.push(match);
+  }
+
+  return kept.length ? kept : master;
 }
 
 function skillsBlock(skills: string[]): string {
@@ -171,7 +227,13 @@ function experienceBlock(application: GeneratedApplication): string {
         `<div class="job">` +
         `<p class="job-role">${esc(job.role)}</p>` +
         `<p class="job-meta">${esc(job.company)}${job.dates ? ` / ${esc(job.dates)}` : ""}</p>` +
-        `<ul>${job.bullets.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>` +
+        // ONE sentence per job. The prompt asks for one; this makes it so,
+        // because a prompt is a request and a CV that quietly grows a second
+        // page is the thing we are trying to stop.
+        `<ul>${job.bullets
+          .slice(0, 1)
+          .map((b) => `<li>${esc(b)}</li>`)
+          .join("")}</ul>` +
         `</div>`
     )
     .join("\n");
@@ -179,6 +241,9 @@ function experienceBlock(application: GeneratedApplication): string {
 
 function projectsBlock(application: GeneratedApplication): string {
   return application.tailored_projects
+    // Two, and only two — the two that make the best case for this role.
+    // Same reasoning as the bullets above: enforced, not requested.
+    .slice(0, 2)
     .map(
       (project) =>
         `<div class="project">` +
@@ -255,10 +320,16 @@ export function buildCvHtml({
     // --- blocks the app builds ---
     photo_html: photoBlock(photo),
     contact_html: contactBlock(cv),
-    // SKILLS are the human ones — problem-solving, communication. They read
-    // the same to every employer, so they are printed as written and never
-    // reshuffled by the model.
-    skills_html: skillsBlock(cv.skills),
+    // LINKS: portfolio, LinkedIn, GitHub — straight from cv_profile.links,
+    // in their own panel under Contact.
+    links_html: linksBlock(cv),
+    // SKILLS are the human ones — problem-solving, communication. Gemini keeps
+    // the handful this advert calls for; chooseSkills() then matches its
+    // choices back against the master list, so the words printed are always
+    // the words Dean wrote.
+    skills_html: skillsBlock(
+      chooseSkills(cv.skills, application.skills_selected ?? [])
+    ),
     // TOOLS are the keyword list an applicant tracking system scans for, so
     // this is the part worth tailoring: Gemini puts the tools the advert names
     // first, and the profile's own list is the fallback.
