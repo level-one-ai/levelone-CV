@@ -315,7 +315,7 @@
     /* Trimmed from 14mm. The header block was taking a third of the page in
        whitespace alone; this buys back the space a fourth bullet needs
        without touching a single font size. */
-    padding: 11mm 12mm 10mm;
+    padding: 9mm 12mm 9mm;
   }
 
   .name {
@@ -340,10 +340,13 @@
     color: var(--muted);
   }
 
+  /* Was 6mm each side. Whitespace, not content — the CV has to hold a
+     120-word profile AND four dated roles on one sheet, and measurement said
+     this rule alone was costing 15px of the budget. No font size moves. */
   .rule {
     height: 0.3mm;
     background: var(--line);
-    margin: 6mm 0;
+    margin: 4mm 0;
   }
 
   .main h2 {
@@ -355,7 +358,7 @@
   }
 
   .main section + section {
-    margin-top: 6.5mm;
+    margin-top: 5.5mm;
   }
 
   .profile-text {
@@ -371,7 +374,7 @@
   }
 
   .job {
-    margin-bottom: 4mm;
+    margin-bottom: 3.2mm;
     page-break-inside: avoid;
   }
 
@@ -383,6 +386,25 @@
 
   .job-meta {
     margin: 0.6mm 0 2mm;
+    font-size: 8.8pt;
+    color: var(--muted);
+  }
+
+  /* Early roles: one line each, no bullet. They still belong on the CV — a
+     gap in the dates asks more questions than a job title does — but they
+     have stopped earning a paragraph. */
+  .job-early {
+    margin-bottom: 1.6mm;
+  }
+
+  .job-role-early {
+    margin: 0;
+    font-size: 9.2pt;
+    font-weight: 700;
+  }
+
+  .job-meta-early {
+    font-weight: 400;
     font-size: 8.8pt;
     color: var(--muted);
   }
@@ -436,8 +458,9 @@
         </section>
 
         <section>
-          <h2>Links</h2>
-          <!-- FIXED: from cv_profile.links. Nothing renders if it is empty. -->
+          <!-- FIXED: from cv_profile.links. This block brings its own <h2>,
+               so an empty links field prints nothing at all rather than a
+               heading standing over a gap. -->
           {{links_html}}
         </section>
 

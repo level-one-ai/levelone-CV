@@ -92,18 +92,23 @@ You only ever type into the first three.
 
 ### `links`
 
-This one is JSON, so the shape matters. Copy this and change the addresses:
+This one is JSON. Use a **list**, one entry per link — the order you write
+them is the order they print:
 
 ```json
-{
-  "LinkedIn": "https://linkedin.com/in/deanfinlayson",
-  "Website": "https://levelone.digital",
-  "GitHub": "https://github.com/deanfinlayson"
-}
+[
+  { "name": "Website",  "url": "https://portfolio.levelone.digital/" },
+  { "name": "GitHub",   "url": "https://github.com/level-one-ai" },
+  { "name": "LinkedIn", "url": "https://www.linkedin.com/in/dean-finlayson" }
+]
 ```
 
-Every part needs `"straight quotes"`. Put a comma between the lines, but not
+Every part needs `"straight quotes"`. Put a comma between the entries, but not
 after the last one. If PocketBase turns the box red, a quote or comma is wrong.
+
+The older `{"GitHub": "https://..."}` shape still works too, so nothing breaks
+if that is what you already have. An entry with no `url` is skipped rather than
+printed as a blank line.
 
 These fill the **LINKS** panel of your CV, directly under Contact. Each one is
 a real clickable link in the PDF; the visible text drops the `https://` so a

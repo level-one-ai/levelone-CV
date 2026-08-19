@@ -36,7 +36,7 @@ const responseSchema = {
     resume_summary: {
       type: Type.STRING,
       description:
-        "The CV profile paragraph: 3-4 sentences, 50-75 words, British English, no pronouns. Sentence one must be a noun phrase naming the role and scale, never a verb.",
+        "The CV profile paragraph: 3-4 sentences, 80-120 words, British English, no pronouns. Sentence 1 who they are (title, years, specialisation), sentence 2 what they achieved (measurable, or named tools), sentence 3 the specific value they bring to this role. Sentence one must be a noun phrase, never a verb. No filler adjectives.",
     },
     skills_matched: {
       type: Type.ARRAY,
@@ -53,7 +53,7 @@ const responseSchema = {
     tailored_experience: {
       type: Type.ARRAY,
       description:
-        "The candidate's real roles, re-ordered and re-worded for this advert. Never invent a role.",
+        "The candidate's real roles, newest first. The 2 most recent get an entry each; ALL older roles are merged into one final entry called 'Earlier Roles' with the employers joined by ' / ' and the full date span. Never invent or drop a role.",
       items: {
         type: Type.OBJECT,
         properties: {
@@ -182,8 +182,19 @@ with no honest match are simply left alone.
    part that most obviously exposes machine writing, so follow these rules
    exactly.
 
-   Length: 3 to 5 sentences, 50 to 75 words. This is a ceiling, not a target.
-   Anything longer gets skipped.
+   Length: 3 to 4 sentences, 80 to 120 words. Under 3 sentences says too
+   little; over 5 lines on the page and recruiters skip the paragraph entirely.
+
+   STRUCTURE. Three jobs, in this order:
+     Sentence 1 — WHO: professional title, years of experience, core
+                  specialisation.
+     Sentence 2 — WHAT: one or two measurable achievements, or the specific
+                  tools and competencies that prove the claim in sentence 1.
+     Sentence 3 — WHERE TO: the specific value brought to THIS role. Concrete.
+                  "Value" here means a named capability this employer is
+                  hiring for, not an adjective about attitude.
+   A fourth sentence is allowed if it carries a fact. It is not there to round
+   the paragraph off.
 
    SENTENCE ONE MUST BE A NOUN PHRASE naming what the candidate is, with the
    seniority and scale that makes them credible for this advert. It must not
@@ -208,6 +219,12 @@ with no honest match are simply left alone.
 
    Every claim here must be provable further down the same CV. If a skill is
    not backed by a bullet or a project below, it does not go in the summary.
+
+   NO FILLER. "Results-driven", "highly motivated", "team player",
+   "passionate about", "proven track record" and their relatives say nothing
+   and cost a line each. Replace every one with a named tool, a number, or a
+   thing actually built. If a sentence would survive being moved onto a
+   stranger's CV unchanged, it is filler — rewrite it or cut it.
 
    These three are models for RHYTHM AND SHAPE ONLY. Never borrow a single
    fact, number, employer or job title from them:
@@ -248,7 +265,19 @@ with no honest match are simply left alone.
    working with clients, it does not.
 
 5. WORK EXPERIENCE
-   Keep every real job, in the order given.
+   Keep every real job, newest first — a gap in the dates asks more awkward
+   questions than a modest job title does.
+
+   COMBINE THE OLD ONES. Only the TWO most recent roles get an entry of their
+   own. Everything before them is merged into a SINGLE final entry:
+     role     "Earlier Roles"
+     company  the employers joined with " / ", e.g.
+              "Finlayson Decorators / Five Guys / The Mash House"
+     dates    the whole span, earliest start to latest end
+     bullets  one sentence covering them together, or none at all if they say
+              nothing this employer would care about
+   Four separate hospitality and trade entries is how a one-page CV becomes a
+   two-page CV. Never drop a job to save room — merge it.
 
    ONE SENTENCE PER JOB. Exactly one — not two, not a short list. One item in
    the bullets array for each role. This is the hardest instruction here and the
@@ -310,14 +339,15 @@ supported: answer those in terms the candidate can stand behind.
 6. LENGTH. The CV must fit ONE side of A4. There is no shrinking to make it
    fit, so staying inside this budget is your job, not the layout's:
 
-     Summary          50-75 words
-     Jobs             every real job, older unrelated ones combined into one
+     Summary          80-120 words, 3-4 sentences
+     Jobs             the 2 most recent in full; ALL older ones merged into
+                      one "Earlier Roles" entry
      Per job          EXACTLY ONE sentence, 20-30 words
      Projects         EXACTLY 2, one sentence of 20-30 words each
      Tools            6-8
      Human skills     4-6
 
-   That comes to roughly 200-260 words of tailored content in total. If you are
+   That comes to roughly 230-300 words of tailored content in total. If you are
    over, CUT rather than compress: drop the weakest thing entirely instead of
    squeezing more onto the same lines. A shorter CV that fits beats a complete
    one that spills onto a second page.

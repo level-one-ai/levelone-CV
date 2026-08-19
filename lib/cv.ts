@@ -68,22 +68,61 @@ function asSkillList(value: unknown): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Reads the `links` field, whichever way it was written.
+ *
+ * Two shapes are in the wild, and both are reasonable:
+ *
+ *   [{ "name": "GitHub", "url": "https://..." }]   <- a list, order preserved
+ *   { "GitHub": "https://..." }                    <- a map
+ *
+ * This used to accept only the map and silently return {} for a list, which is
+ * why Dean's links never reached his CV: his data was fine, the reader was
+ * too narrow, and nothing said so. A list is arguably the better shape — it
+ * keeps the order you typed — so it is now the one the docs recommend.
+ *
+ * `label`/`title` and `href` are accepted alongside `name` and `url`, because
+ * those are the other words someone would reach for. An entry with no usable
+ * address is dropped: a blank row on a CV helps nobody.
+ */
 function asLinkMap(value: unknown): Record<string, string> {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-        k,
-        String(v),
-      ])
-    );
-  }
-  if (typeof value === "string" && value.trim().startsWith("{")) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return {};
     try {
-      return asLinkMap(JSON.parse(value));
+      return asLinkMap(JSON.parse(trimmed));
     } catch {
       return {};
     }
   }
+
+  if (Array.isArray(value)) {
+    const out: Record<string, string> = {};
+    for (const entry of value) {
+      if (!entry || typeof entry !== "object") continue;
+      const row = entry as Record<string, unknown>;
+
+      const url = String(row.url ?? row.href ?? row.link ?? "").trim();
+      if (!url) continue;
+
+      // An unnamed link still deserves to appear; the address says enough.
+      const name =
+        String(row.name ?? row.label ?? row.title ?? "").trim() || "Link";
+
+      out[name] = url;
+    }
+    return out;
+  }
+
+  if (value && typeof value === "object") {
+    const out: Record<string, string> = {};
+    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+      const url = String(raw ?? "").trim();
+      if (url) out[key] = url;
+    }
+    return out;
+  }
+
   return {};
 }
 

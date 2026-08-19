@@ -138,12 +138,19 @@ function linksBlock(cv: MasterCv): string {
   const entries = Object.entries(cv.profile.links).filter(
     ([, url]) => typeof url === "string" && url.trim()
   );
+  // No links means no section AT ALL. The heading used to live in the
+  // template, so an empty field printed "LINKS" over a gap.
   if (!entries.length) return "";
 
-  return entries
+  const rows = entries
     .map(([label, url]) => {
       const href = url.trim();
-      const shown = href.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+      // Scheme, "www." and a trailing slash are all noise in a 68mm column,
+      // and none of them help a reader find the page. The href keeps them.
+      const shown = href
+        .replace(/^https?:\/\//i, "")
+        .replace(/^www\./i, "")
+        .replace(/\/$/, "");
       return (
         `<div class="link-item">` +
         `<div class="link-label">${esc(label)}</div>` +
@@ -152,6 +159,8 @@ function linksBlock(cv: MasterCv): string {
       );
     })
     .join("\n");
+
+  return `<h2>Links</h2>\n${rows}`;
 }
 
 /**
@@ -220,13 +229,36 @@ function toolsBlock(tools: string[]): string {
     .join("")}</ul>`;
 }
 
+/**
+ * How many roles get a full block with a sentence under them. Everything older
+ * is printed as a single compact line.
+ */
+const ROLES_IN_FULL = 2;
+
 function experienceBlock(application: GeneratedApplication): string {
   return application.tailored_experience
-    .map(
-      (job) =>
+    .map((job, index) => {
+      const meta = `${esc(job.company)}${job.dates ? ` / ${esc(job.dates)}` : ""}`;
+
+      // Older roles: role, employer and dates on one compact line, no
+      // sentence. Nothing is dropped and nothing is invented — an early job
+      // still counts as history, it just stops being given a paragraph.
+      //
+      // The prompt asks the model to combine these itself. This is what makes
+      // the page safe when it does not.
+      if (index >= ROLES_IN_FULL) {
+        return (
+          `<div class="job job-early">` +
+          `<p class="job-role-early">${esc(job.role)}` +
+          `<span class="job-meta-early"> — ${meta}</span></p>` +
+          `</div>`
+        );
+      }
+
+      return (
         `<div class="job">` +
         `<p class="job-role">${esc(job.role)}</p>` +
-        `<p class="job-meta">${esc(job.company)}${job.dates ? ` / ${esc(job.dates)}` : ""}</p>` +
+        `<p class="job-meta">${meta}</p>` +
         // ONE sentence per job. The prompt asks for one; this makes it so,
         // because a prompt is a request and a CV that quietly grows a second
         // page is the thing we are trying to stop.
@@ -235,7 +267,8 @@ function experienceBlock(application: GeneratedApplication): string {
           .map((b) => `<li>${esc(b)}</li>`)
           .join("")}</ul>` +
         `</div>`
-    )
+      );
+    })
     .join("\n");
 }
 

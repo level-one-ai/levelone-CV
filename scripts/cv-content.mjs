@@ -33,8 +33,10 @@ export const PROFILE = {
   // harmless reminder: `seed:cv --force` rebuilds the profile row from this
   // file, so a fake address in here is a fake address printed on a real CV.
   //
-  // If you do want your links to live in this file, put the real ones here.
-  links: {},
+  // If you do want your links to live in this file, put the real ones here as
+  // a list — [{ name: "GitHub", url: "https://..." }]. The map shape
+  // { GitHub: "https://..." } is read too.
+  links: [],
 
   master_summary:
     "Automation engineer and founder with four years building production AI " +
