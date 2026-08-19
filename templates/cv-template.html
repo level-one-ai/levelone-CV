@@ -33,7 +33,10 @@
        last_name          surname
        photo_html         your headshot, faded into the sidebar
        contact_html       phone, address, email
-       links_html         portfolio, LinkedIn, GitHub — clickable
+       links_section_html the whole LINKS section, heading included.
+                          Disappears when you have no links.
+       links_html         the link rows only, for a layout where you
+                          write the heading yourself. Never both.
        education_html     schools, qualifications, grades
 
      ALSO AVAILABLE — not used in this layout, but they work if you
@@ -457,12 +460,12 @@
           {{contact_html}}
         </section>
 
-        <section>
-          <!-- FIXED: from cv_profile.links. This block brings its own <h2>,
-               so an empty links field prints nothing at all rather than a
-               heading standing over a gap. -->
-          {{links_html}}
-        </section>
+        <!-- FIXED: from cv_profile.links. This placeholder is the WHOLE
+             section, heading included, so an empty links field prints nothing
+             at all rather than a heading standing over a gap.
+             If you prefer to write the heading yourself, use the links_html
+             placeholder instead — that one is the rows only. Never both. -->
+        {{links_section_html}}
 
         <section>
           <h2>Skills</h2>

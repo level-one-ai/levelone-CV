@@ -115,9 +115,13 @@ for what the collections must contain.
 
 The CV is never scaled or clipped to fit, so the limits are content limits, set
 in the prompt AND enforced in `lib/cv-html.ts` — one sentence per job, two
-projects, 6-8 tools, 4-6 skills. The prompt asks; the renderer makes sure, on
+projects, 4 tools, 4 skills, and only the two most recent roles in full. The prompt asks; the renderer makes sure, on
 the principle that a prompt is a request and a CV silently growing a second
 page is what we are trying to stop.
+
+`dropOverlappingTools()` in `lib/gemini.ts` also stops n8n and Make.com
+appearing together, unless the advert is for no-code or low-code work — that
+tie-break needs the job advert, which only that layer can see.
 
 Skills are chosen for the advert but never reworded: `chooseSkills()` matches
 the model's picks back against the master list and prints your spelling, so

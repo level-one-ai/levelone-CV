@@ -160,7 +160,28 @@ function linksBlock(cv: MasterCv): string {
     })
     .join("\n");
 
-  return `<h2>Links</h2>\n${rows}`;
+  return rows;
+}
+
+/**
+ * The whole LINKS section — <section>, heading and rows — or nothing.
+ *
+ * Two placeholders exist for this on purpose. The heading cannot live only in
+ * the block (an older pasted template already has its own, and you get two) and
+ * it cannot live only in the template (an empty links field leaves a heading
+ * standing over a gap). So:
+ *
+ *   {{links_html}}          rows only — safe in a template that has its own <h2>
+ *   {{links_section_html}}  the entire section — vanishes when there are none
+ *
+ * The shipped template uses the second. The first keeps every template Dean has
+ * already pasted into PocketBase rendering correctly, which matters because the
+ * design lives in the database and drifts from the code between updates.
+ */
+function linksSectionBlock(cv: MasterCv): string {
+  const rows = linksBlock(cv);
+  if (!rows) return "";
+  return `<section>\n<h2>Links</h2>\n${rows}\n</section>`;
 }
 
 /**
@@ -174,6 +195,9 @@ function linksBlock(cv: MasterCv): string {
  * Anything unusable — no selection, or a selection that matches nothing — falls
  * back to the full list. A CV with every skill beats a CV with none.
  */
+const MAX_SKILLS = 4;
+const MAX_TOOLS = 4;
+
 function chooseSkills(master: string[], selected: string[]): string[] {
   if (!selected.length) return master;
 
@@ -185,7 +209,9 @@ function chooseSkills(master: string[], selected: string[]): string[] {
     if (match && !kept.includes(match)) kept.push(match);
   }
 
-  return kept.length ? kept : master;
+  // Four. The sidebar is what pushed this CV onto a second page, and skills
+  // are the cheapest thing on it to cut.
+  return (kept.length ? kept : master).slice(0, MAX_SKILLS);
 }
 
 function skillsBlock(skills: string[]): string {
@@ -356,6 +382,7 @@ export function buildCvHtml({
     // LINKS: portfolio, LinkedIn, GitHub — straight from cv_profile.links,
     // in their own panel under Contact.
     links_html: linksBlock(cv),
+    links_section_html: linksSectionBlock(cv),
     // SKILLS are the human ones — problem-solving, communication. Gemini keeps
     // the handful this advert calls for; chooseSkills() then matches its
     // choices back against the master list, so the words printed are always
@@ -366,10 +393,13 @@ export function buildCvHtml({
     // TOOLS are the keyword list an applicant tracking system scans for, so
     // this is the part worth tailoring: Gemini puts the tools the advert names
     // first, and the profile's own list is the fallback.
+    // Four tools, the four this advert actually asks for. A tool list is only
+    // persuasive while it is short enough to read.
     tools_html: toolsBlock(
-      application.skills_matched.length
+      (application.skills_matched.length
         ? application.skills_matched
         : cv.profile.tools
+      ).slice(0, MAX_TOOLS)
     ),
     education_html: educationBlock(cv.profile.education),
     experience_html: experienceBlock(application),

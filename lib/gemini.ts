@@ -41,13 +41,13 @@ const responseSchema = {
     skills_matched: {
       type: Type.ARRAY,
       description:
-        "6-8 tools and platforms, chosen from the candidate's own tool list because THIS advert asks for them or they are the closest match to what it asks for. Not a dump of everything they know. Advert-named tools first. Never add a tool they have not listed.",
+        "EXACTLY 4 tools, chosen from the candidate's own tool list because THIS advert asks for them by name or they are the closest match to what it asks for. Four, not eight — only the four that most directly answer this advert. Never add a tool they have not listed. Do not return both n8n and Make.com unless the advert is specifically for no-code or low-code automation work.",
       items: { type: Type.STRING },
     },
     skills_selected: {
       type: Type.ARRAY,
       description:
-        "4-6 of the candidate's HUMAN skills, copied word for word from their own skills list, keeping only the ones this advert actually calls for. Never reword one and never add one that is not on their list.",
+        "EXACTLY 4 of the candidate's HUMAN skills, copied word for word from their own skills list — the four this advert most directly calls for. Never reword one and never add one that is not on their list.",
       items: { type: Type.STRING },
     },
     tailored_experience: {
@@ -81,11 +81,15 @@ const responseSchema = {
       items: {
         type: Type.OBJECT,
         properties: {
-          name: { type: Type.STRING },
+          name: {
+            type: Type.STRING,
+            description:
+              "A 3-6 word title describing WHAT THE SYSTEM DOES, written from scratch. Never reuse the stored project name and never include a company, client, brand or product name from any source. 'Grove Bedding Operations Engine' becomes 'PDF Router & Order Processing Engine'.",
+          },
           description: {
             type: Type.STRING,
             description:
-              "One sentence, 20-30 words, leading with the outcome that matters to this advert. No client company names.",
+              "One plain sentence, 20-30 words, saying what the system does and what it changed. No client company names, no jargon where a plain word exists.",
           },
           tech: {
             type: Type.STRING,
@@ -242,27 +246,33 @@ with no honest match are simply left alone.
       research, technical writing, and cross-team communication."
 
 3. TOOLS
-   Return 6 to 8 items, chosen ONLY from the candidate's own tool list.
+   Return EXACTLY 4, chosen ONLY from the candidate's own tool list.
 
-   This is a SHORTLIST FOR THIS ADVERT, not an inventory. Include a tool only
-   because the advert asks for it, or because it is the closest thing on their
-   list to something the advert asks for. A tool the advert gives no reason to
-   mention is padding, and padding is what makes a reader stop reading.
+   Four. Not six, not eight. This is a SHORTLIST FOR THIS ADVERT, not an
+   inventory: the four tools that most directly answer what this employer asked
+   for. A tool the advert gives no reason to mention is padding, and padding is
+   what makes a reader stop reading.
 
    Advert-named tools first, in the advert's own spelling where it means the
    same thing. Never add a tool that is not on their list, however obviously it
    might be implied.
 
+   NEVER LIST BOTH n8n AND Make.com. They are two names for the same skill, and
+   together they read as a no-code generalist rather than an engineer. Pick the
+   one this advert names; if it names neither, pick n8n. The ONE exception is an
+   advert explicitly for no-code or low-code automation work, where breadth
+   across both platforms is the thing being hired — then both may appear.
+
 4. HUMAN SKILLS
-   Return 4 to 6, chosen ONLY from the candidate's own skills list.
+   Return EXACTLY 4, chosen ONLY from the candidate's own skills list.
 
    Copy each one WORD FOR WORD. Do not reword, expand, merge or retitle them —
    "Problem-Solving" is theirs, "Advanced Problem Resolution" is yours, and only
    one of those is honest. Never add a skill that is not on their list.
 
-   Keep the ones this advert actually calls for. If it stresses stakeholder
+   Keep the four this advert most directly calls for. If it stresses stakeholder
    management, their communication skill earns its place; if it never mentions
-   working with clients, it does not.
+   working with clients, it does not. Four is the whole allowance — choose.
 
 5. WORK EXPERIENCE
    Keep every real job, newest first — a gap in the dates asks more awkward
@@ -296,9 +306,22 @@ with no honest match are simply left alone.
    closest match to what they are hiring for, or the most impressive if nothing
    matches closely. Best first.
 
-   One sentence each, 20 to 30 words, leading with the outcome this employer
-   would care about. The tech line lists only tools genuinely used on that
-   project.
+   THE TITLE DESCRIBES THE SYSTEM, NEVER THE CLIENT. Write it yourself, from
+   what the thing actually does, in 3 to 6 words. Do not reuse the name stored
+   against the project — that name is the candidate's private label for it and
+   frequently contains the client's company name.
+
+     "Grove Bedding Operations Engine"  ->  "PDF Router & Order Processing Engine"
+     "Cekra Dispatch Platform"          ->  "Dispatch & Booking Engine"
+
+   No company, client, brand or product name belongs in that title, from any
+   source, ever. If you cannot describe the system without naming someone, you
+   have not understood it well enough to feature it.
+
+   Then one plain sentence, 20 to 30 words: what the system does, and what
+   changed because it exists. Plain words over jargon — "reads incoming orders
+   and files them automatically" beats "orchestrates document ingestion
+   workflows". The tech line lists only tools genuinely used on that project.
 
    CLIENT NAMES ARE CONFIDENTIAL. Never print the name of a client, customer or
    end company anywhere in a project name, description or tech line, even when
@@ -344,8 +367,8 @@ supported: answer those in terms the candidate can stand behind.
                       one "Earlier Roles" entry
      Per job          EXACTLY ONE sentence, 20-30 words
      Projects         EXACTLY 2, one sentence of 20-30 words each
-     Tools            6-8
-     Human skills     4-6
+     Tools            EXACTLY 4
+     Human skills     EXACTLY 4
 
    That comes to roughly 230-300 words of tailored content in total. If you are
    over, CUT rather than compress: drop the weakest thing entirely instead of
@@ -452,6 +475,45 @@ function isTransient(err: unknown): boolean {
     status === 503 ||
     /overloaded|unavailable|timeout|ECONNRESET/i.test(message)
   );
+}
+
+/**
+ * n8n and Make.com are two names for the same skill. Listed together on a CV
+ * for an engineering role they read as a no-code generalist rather than someone
+ * who builds things — which is Dean's own reason for the rule.
+ *
+ * The exception is a job that IS about low-code platforms, where breadth across
+ * both is exactly what is being hired.
+ *
+ * The prompt says all this too. This is here because a prompt is a request, and
+ * because the tie-break needs the advert, which only this layer can see.
+ */
+const OVERLAPPING_TOOLS = ["n8n", "make.com"];
+
+const LOW_CODE_SIGNALS =
+  /\b(no[- ]?code|low[- ]?code|citizen developer|nocode|lowcode)\b/i;
+
+export function dropOverlappingTools(tools: string[], jobDescription: string): string[] {
+  const present = OVERLAPPING_TOOLS.filter((name) =>
+    tools.some((tool) => tool.trim().toLowerCase() === name)
+  );
+  if (present.length < 2) return tools;
+
+  // A low-code role wants both. Everyone else gets one.
+  if (LOW_CODE_SIGNALS.test(jobDescription)) return tools;
+
+  const advert = jobDescription.toLowerCase();
+  const named = OVERLAPPING_TOOLS.filter((name) => advert.includes(name));
+
+  // Keep whichever the advert asked for. If it named neither, keep n8n: it is
+  // the self-hosted, more technical of the two, so it is the safer signal when
+  // there is nothing to go on.
+  const keep = named.length === 1 ? named[0] : "n8n";
+
+  return tools.filter((tool) => {
+    const lower = tool.trim().toLowerCase();
+    return !OVERLAPPING_TOOLS.includes(lower) || lower === keep;
+  });
 }
 
 /**
@@ -616,7 +678,10 @@ export async function generateApplication(
       cv_headline: parsed.cv_headline?.trim() || "",
       tailored_intro: parsed.tailored_intro?.trim() || "",
       resume_summary: parsed.resume_summary?.trim() || "",
-      skills_matched: parsed.skills_matched ?? [],
+      skills_matched: dropOverlappingTools(
+        parsed.skills_matched ?? [],
+        jobDescription
+      ),
       skills_selected: parsed.skills_selected ?? [],
       tailored_experience: parsed.tailored_experience ?? [],
       tailored_projects: parsed.tailored_projects ?? [],

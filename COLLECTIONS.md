@@ -137,8 +137,7 @@ Problem-Solving, Client Communication, Systems Thinking, Project Management, Pro
 One line, separated by commas. No quotes, no brackets. Spacing does not matter,
 and new lines work too if you prefer one per line.
 
-**The AI picks which of these to print — 4 to 6 of them — but never changes
-the words.** Its choices are matched back against your list in code, so a skill
+**The AI picks which 4 of these to print, but never changes the words.** Its choices are matched back against your list in code, so a skill
 you did not write cannot appear, and "Problem-Solving" cannot quietly become
 "Advanced Problem Resolution". Write more than you need; the ones that suit
 each advert get used.
@@ -154,8 +153,10 @@ These fill the **TOOLS** panel underneath.
 n8n, Make.com, Custom Webhooks, REST APIs, Claude Code, Cursor, GitHub Copilot, Claude API, Firebase, Docker, VPS / Linux, PostgreSQL, PocketBase, Stripe, GoCardless
 ```
 
-**This list IS re-ordered for every job.** If an advert asks for Docker, Docker
-moves to the front. This is the part that machines read — most companies scan
+**Only 4 of these print, chosen for each advert.** If a job asks for Docker,
+Docker is one of the four. n8n and Make.com are never printed together unless
+the job is specifically a no-code or low-code role — side by side they read as
+a no-code generalist rather than an engineer. This is the part that machines read — most companies scan
 CVs for tool names before a human ever sees them, so list everything you
 genuinely use.
 
