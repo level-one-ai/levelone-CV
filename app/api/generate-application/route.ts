@@ -203,12 +203,28 @@ export async function POST(request: Request) {
       throw new Error(describePocketBaseError(err));
     }
 
+    // A rendered cover note that is not on the saved record means PocketBase
+    // discarded it, which it does silently when the field does not exist.
+    if (coverNote && !record.cover_note_pdf) {
+      console.warn(
+        "[generate-application] The cover note PDF was not stored: the " +
+          "`applications` collection has no cover_note_pdf field, so PocketBase " +
+          "discarded it. Run `npm run setup:pocketbase` to add it. The document " +
+          "still works — it is rebuilt on demand — but it is rebuilt every time."
+      );
+    }
+
     const payload: GenerateResponse = {
       application: { ...record, ...application },
       docUrl: `/api/applications/${record.id}/file`,
-      coverNoteUrl: coverNote
-        ? `/api/applications/${record.id}/file?doc=cover-note`
-        : "",
+      // Reported from what was actually SAVED, plus the letter itself — the
+      // file route can build the PDF on demand from `tailored_intro`, so cover
+      // note text is enough to promise a document. Reporting it from whether we
+      // rendered one is what produced a button pointing at a 404.
+      coverNoteUrl:
+        record.cover_note_pdf || application.tailored_intro.trim()
+          ? `/api/applications/${record.id}/file?doc=cover-note`
+          : "",
     };
 
     return NextResponse.json(payload);

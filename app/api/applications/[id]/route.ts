@@ -27,11 +27,13 @@ export async function GET(
     const payload: GenerateResponse = {
       application,
       docUrl: `/api/applications/${record.id}/file`,
-      // Older records were generated before cover note PDFs existed, so this
-      // is empty for them rather than a link to a 404.
-      coverNoteUrl: application.cover_note_pdf
-        ? `/api/applications/${record.id}/file?doc=cover-note`
-        : "",
+      // Older records have no stored cover note PDF, but they do have the
+      // letter — and the file route builds the document from that on demand.
+      // So the button appears for every application ever generated.
+      coverNoteUrl:
+        application.cover_note_pdf || application.tailored_intro.trim()
+          ? `/api/applications/${record.id}/file?doc=cover-note`
+          : "",
     };
 
     return NextResponse.json(payload);

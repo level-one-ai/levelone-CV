@@ -141,11 +141,18 @@ history on it.
 panel the CV uses, and **PDF** on the card header downloads it directly. The
 panel shows one document at a time, so viewing one closes the other.
 
-Records generated before this existed have no cover note PDF; both buttons
-simply do not appear for them. **This is also why the buttons are missing on an
-application generated before you ran `npm run setup:pocketbase`** — the file was
-never stored, so there is nothing to show. Generate the application again and
-both appear.
+**Every application has one, including the ones generated before the feature
+existed.** If a record has no stored `cover_note_pdf` but does have cover note
+text in `tailored_intro`, the file route builds the PDF on request, caches it
+back onto the record, and streams it. No Gemini call — the letter is already
+written, so this is a template and a browser.
+
+That also covers the case where `applications.cover_note_pdf` does not exist
+yet: PocketBase **silently discards an unknown field on create** (measured
+against 0.39.10, not assumed), so the file would vanish with no error. The
+document is rebuilt on every request until `npm run setup:pocketbase` adds the
+field, which works but is slower — and the server log says so plainly rather
+than leaving it a mystery.
 
 ## Keeping it to one page
 
