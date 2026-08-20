@@ -49,6 +49,7 @@ export function toApplicationRecord(record: RecordModel): ApplicationRecord {
       []
     ),
     pdf: String(record.pdf ?? ""),
+    cover_note_pdf: String(record.cover_note_pdf ?? ""),
     created: String(record.created ?? ""),
     updated: String(record.updated ?? ""),
   };

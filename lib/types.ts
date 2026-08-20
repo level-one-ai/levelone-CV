@@ -103,6 +103,8 @@ export interface ApplicationRecord extends GeneratedApplication {
   job_description: string;
   /** Stored filename of the generated PDF, empty until it is attached. */
   pdf: string;
+  /** Stored filename of the cover note PDF, empty when there is none. */
+  cover_note_pdf: string;
   created: string;
   updated: string;
 }
@@ -134,4 +136,6 @@ export interface GenerateResponse {
   application: ApplicationRecord;
   /** Same-origin URL the viewer loads the PDF from. */
   docUrl: string;
+  /** Same, for the cover note PDF. Empty when there is no cover note. */
+  coverNoteUrl: string;
 }

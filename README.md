@@ -27,8 +27,9 @@ Paste advert  ─▶  POST /api/generate-application
                     2. Gemini     → structured JSON, tailored to the advert
                     3. cv-html.ts → fills the HTML template's {{placeholders}}
                     4. pdf.ts     → headless Chromium prints an A4 PDF, in memory
-                    5. PocketBase → saves the text + the .pdf together
-                    6. returns the text and a same-origin document URL
+                    4b. …and a second one for the cover note
+                    5. PocketBase → saves the text + both PDFs together
+                    6. returns the text and same-origin document URLs
 ```
 
 No file ever leaves the machines you control, and there is no PDF service. The
@@ -77,6 +78,7 @@ PocketBase · `@google/genai` · `playwright-core` driving headless Chromium ·
 | `lib/pdf.ts` | Prints the HTML to PDF with headless Chromium |
 | `components/` | Sidebar, composer, loader, cards, document viewer |
 | `templates/cv-template.html` | The default CV design, seeded into PocketBase |
+| `templates/cover-note-template.html` | The cover note design, likewise |
 
 ## Running it
 
@@ -110,6 +112,21 @@ or removes an existing field, and never touches API rules, so it is safe to
 re-run against a database that already holds your CV. The schema it applies
 lives in `scripts/pocketbase-schema.mjs`, which is the single source of truth
 for what the collections must contain.
+
+## The cover note PDF
+
+Every generation also prints the cover note as its own A4 PDF, in the same
+design as the CV but with a sidebar holding only contact details and links —
+it is a letter, not a second CV. It is stored on the same record in
+`applications.cover_note_pdf` and downloaded from the **PDF** button on the
+cover note card.
+
+Its design lives in **`cv_template.cover_note_html`**, next to the CV design in
+the same row, so both are edited in one place. Empty field falls back to
+`templates/cover-note-template.html`.
+
+Records generated before this existed have no cover note PDF; the button simply
+does not appear for them.
 
 ## Keeping it to one page
 

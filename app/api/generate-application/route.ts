@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { loadCvTemplate, loadMasterCv, loadProfilePhoto } from "@/lib/cv";
-import { buildCvHtml, buildFileName } from "@/lib/cv-html";
+import {
+  loadCoverNoteTemplate,
+  loadCvTemplate,
+  loadMasterCv,
+  loadProfilePhoto,
+} from "@/lib/cv";
+import {
+  buildCoverNoteFileName,
+  buildCoverNoteHtml,
+  buildCvHtml,
+  buildFileName,
+} from "@/lib/cv-html";
 import { findDuplicate, type PastApplication } from "@/lib/duplicates";
 import { generateApplication } from "@/lib/gemini";
 import { renderPdf } from "@/lib/pdf";
@@ -108,13 +118,35 @@ export async function POST(request: Request) {
     // 4. The same text is poured into the HTML template and printed to PDF,
     //    entirely in memory. The template comes from PocketBase when there is
     //    one, so edits made in the admin UI take effect immediately.
-    const [template, photo] = await Promise.all([
+    const [template, coverNoteTemplate, photo] = await Promise.all([
       loadCvTemplate(pb),
+      loadCoverNoteTemplate(pb),
       loadProfilePhoto(pb, cv.profile),
     ]);
     const html = buildCvHtml({ template, application, cv, photo });
     const { bytes: pdf, pages } = await renderPdf(html);
     const fileName = buildFileName(application, cv.profile.full_name);
+
+    // The cover note as its own document, in the same design. Rendered only
+    // when there is a note to render — an empty PDF helps nobody — and a
+    // failure here must never lose the CV, which is the thing that matters.
+    let coverNote: { bytes: Buffer; name: string } | null = null;
+    if (application.tailored_intro.trim()) {
+      try {
+        const coverHtml = buildCoverNoteHtml({
+          template: coverNoteTemplate,
+          application,
+          cv,
+          photo,
+        });
+        coverNote = {
+          bytes: (await renderPdf(coverHtml)).bytes,
+          name: buildCoverNoteFileName(application, cv.profile.full_name),
+        };
+      } catch (err) {
+        console.warn("[generate-application] cover note PDF skipped:", err);
+      }
+    }
 
     // The CV is never scaled or clipped to force one page, so a long one
     // simply becomes two. Say so rather than letting it be discovered by an
@@ -154,6 +186,13 @@ export async function POST(request: Request) {
       new Blob([new Uint8Array(pdf)], { type: "application/pdf" }),
       fileName
     );
+    if (coverNote) {
+      form.append(
+        "cover_note_pdf",
+        new Blob([new Uint8Array(coverNote.bytes)], { type: "application/pdf" }),
+        coverNote.name
+      );
+    }
 
     let record: ApplicationRecord;
     try {
@@ -167,6 +206,9 @@ export async function POST(request: Request) {
     const payload: GenerateResponse = {
       application: { ...record, ...application },
       docUrl: `/api/applications/${record.id}/file`,
+      coverNoteUrl: coverNote
+        ? `/api/applications/${record.id}/file?doc=cover-note`
+        : "",
     };
 
     return NextResponse.json(payload);

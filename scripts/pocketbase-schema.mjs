@@ -101,6 +101,10 @@ export const COLLECTIONS = [
       // The whole template. Generous limit: a designed CV with inline CSS runs
       // to several thousand characters and must never be silently truncated.
       text("html", { max: 200000 }),
+      // The cover note design, same idea. Read by loadCoverNoteTemplate() in
+      // lib/cv.ts; leave it empty and the app uses the shipped default from
+      // templates/cover-note-template.html.
+      text("cover_note_html", { max: 200000 }),
     ],
   },
   {
@@ -126,6 +130,14 @@ export const COLLECTIONS = [
         // token; app/api/applications/[id]/file/route.ts mints one per request
         // via pb.files.getToken(), so this stays private without extra work.
         name: "pdf",
+        type: "file",
+        maxSelect: 1,
+        maxSize: 5242880,
+        protected: true,
+      },
+      {
+        // The cover note as its own PDF, downloadable separately from the CV.
+        name: "cover_note_pdf",
         type: "file",
         maxSelect: 1,
         maxSize: 5242880,

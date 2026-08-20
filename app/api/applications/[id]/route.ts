@@ -22,9 +22,16 @@ export async function GET(
     const pb = await superuserClient();
     const record = await pb.collection(COLLECTIONS.applications).getOne(id);
 
+    const application = toApplicationRecord(record);
+
     const payload: GenerateResponse = {
-      application: toApplicationRecord(record),
+      application,
       docUrl: `/api/applications/${record.id}/file`,
+      // Older records were generated before cover note PDFs existed, so this
+      // is empty for them rather than a link to a 404.
+      coverNoteUrl: application.cover_note_pdf
+        ? `/api/applications/${record.id}/file?doc=cover-note`
+        : "",
     };
 
     return NextResponse.json(payload);

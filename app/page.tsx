@@ -49,6 +49,7 @@ export default function HomePage() {
   const [duplicate, setDuplicate] = useState<DuplicateMatch | null>(null);
   const [application, setApplication] = useState<ApplicationRecord | null>(null);
   const [docUrl, setDocUrl] = useState("");
+  const [coverNoteUrl, setCoverNoteUrl] = useState("");
 
   const [history, setHistory] = useState<ApplicationSummary[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -78,6 +79,7 @@ export default function HomePage() {
   function show(payload: GenerateResponse) {
     setApplication(payload.application);
     setDocUrl(payload.docUrl);
+    setCoverNoteUrl(payload.coverNoteUrl ?? "");
     setStatus("ready");
   }
 
@@ -160,6 +162,7 @@ export default function HomePage() {
     setJobDescription("");
     setApplication(null);
     setDocUrl("");
+    setCoverNoteUrl("");
     setError("");
     setDuplicate(null);
     setViewerOpen(false);
@@ -224,7 +227,10 @@ export default function HomePage() {
                   ) : null}
                 </header>
 
-                <OutputCards application={application} />
+                <OutputCards
+                  application={application}
+                  coverNoteUrl={coverNoteUrl}
+                />
 
                 <div className="flex flex-wrap items-center justify-center gap-3 pb-2">
                   <button

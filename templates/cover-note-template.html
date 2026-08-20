@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<title>{{full_name}} — Cover Note</title>
+<style>
+  /* ==================================================================
+     Level One COVER NOTE — A4, print-first.
+
+     Deliberately the same design as the CV: same palette, same dark
+     sidebar, same photo treatment, same typography. The two arrive
+     together and should look like they came from the same person.
+
+     Where it differs: the sidebar holds ONLY your contact details and
+     your links. No skills, no tools, no education — this page is a
+     letter, and the sidebar is there for identity, not for a second
+     copy of your CV.
+
+     ------------------------------------------------------------------
+     EVERY PLACEHOLDER
+     ------------------------------------------------------------------
+
+     TAILORED — written fresh for every advert:
+
+       cover_note_html   the cover note itself, as paragraphs
+       job_title         the advert's job title
+       company           the hiring company
+       headline          your job title, matched to the advert
+
+     FIXED — printed exactly as you typed it in PocketBase:
+
+       full_name  first_name  last_name
+       photo_html          your headshot, faded into the sidebar
+       contact_html        phone, address, email
+       links_section_html  the whole LINKS section, heading included.
+                           Disappears when you have no links.
+       links_html          the link rows only, if you would rather
+                           write the heading yourself. Never both.
+       email  phone  location
+       date                today's date, e.g. 20 August 2026
+
+     The names above are listed WITHOUT their braces on purpose: this
+     block is a CSS comment, and written as real placeholders the app
+     would substitute your letter into it. In the markup further down,
+     wrap each name in double curly braces.
+
+     A placeholder the app does not recognise is replaced with nothing,
+     so a typo leaves a gap rather than printing braces on the page.
+
+     This design is stored in PocketBase, in the cv_template collection
+     under the cover_note_html field. Edit it there and the change takes
+     effect on the next generation — no code change, no redeploy.
+     ================================================================== */
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  :root {
+    --ink: #111110;
+    --page: #faf9f6;
+    --muted: #6b6a66;
+    --line: #e8e6e0;
+    --on-dark: #f3f1ea;
+    --on-dark-muted: #a7a49b;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Same trick as the CV: the dark column is painted by the BODY
+     background so it repeats on every printed sheet. A `position: fixed`
+     sidebar looks right on page one and then clips at 297mm. */
+  body {
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.6;
+    background: linear-gradient(
+      to right,
+      var(--ink) 0 68mm,
+      var(--page) 68mm 100%
+    );
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sheet {
+    display: flex;
+    align-items: flex-start;
+    width: 210mm;
+    min-height: 297mm;
+  }
+
+  /* ---------------------------- sidebar ---------------------------- */
+
+  .sidebar {
+    width: 68mm;
+    flex-shrink: 0;
+    color: var(--on-dark);
+  }
+
+  .sidebar section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .photo-frame {
+    position: relative;
+    width: 100%;
+  }
+
+  .photo {
+    width: 100%;
+    height: 48mm;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(100%) contrast(108%);
+  }
+
+  /* The bottom of the picture dissolves into the sidebar ink. Shallow on
+     purpose — any deeper and it starts eating the face. */
+  .photo-frame::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 11mm;
+    background: linear-gradient(
+      to bottom,
+      rgba(17, 17, 16, 0) 0%,
+      rgba(17, 17, 16, 0.55) 45%,
+      rgba(17, 17, 16, 1) 100%
+    );
+  }
+
+  .photo-empty {
+    width: 100%;
+    height: 48mm;
+    background: #1c1c18;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22pt;
+    letter-spacing: 0.12em;
+    color: var(--on-dark-muted);
+  }
+
+  .sidebar-body {
+    padding: 8mm 8mm 6mm;
+  }
+
+  .sidebar h2 {
+    margin: 0 0 3mm;
+    font-size: 10.5pt;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--on-dark);
+  }
+
+  .sidebar section + section {
+    margin-top: 6.5mm;
+  }
+
+  .contact-item,
+  .link-item {
+    margin-bottom: 1.8mm;
+  }
+
+  .contact-label,
+  .link-label {
+    font-weight: 700;
+    font-size: 8.8pt;
+    color: var(--on-dark);
+  }
+
+  .contact-value {
+    font-size: 8.8pt;
+    color: var(--on-dark-muted);
+    word-break: break-word;
+  }
+
+  /* A real anchor, so the address is clickable in the finished PDF. */
+  .link-value {
+    display: block;
+    font-size: 8.8pt;
+    color: var(--on-dark-muted);
+    text-decoration: none;
+    word-break: break-word;
+  }
+
+  /* ------------------------------ letter --------------------------- */
+
+  .main {
+    flex: 1;
+    min-width: 0;
+    padding: 14mm 14mm 12mm;
+  }
+
+  .name {
+    margin: 0;
+    font-size: 26pt;
+    line-height: 1.04;
+    letter-spacing: 0.06em;
+    font-weight: 300;
+    text-transform: uppercase;
+  }
+
+  .name strong {
+    display: block;
+    font-weight: 700;
+  }
+
+  .headline {
+    margin: 3.5mm 0 0;
+    font-size: 9.5pt;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .rule {
+    height: 0.3mm;
+    background: var(--line);
+    margin: 6mm 0;
+  }
+
+  /* The date and the role this letter is about. Small, quiet, and above
+     the letter itself — the reader should know what they are holding
+     before they read a word of it. */
+  .meta {
+    margin: 0 0 6mm;
+    font-size: 9pt;
+    color: var(--muted);
+  }
+
+  .meta strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .letter p {
+    margin: 0 0 4mm;
+    color: #2b2a26;
+    /* Never let one stray line be what starts a second sheet. */
+    orphans: 2;
+    widows: 2;
+  }
+
+  .letter p:last-child {
+    margin-bottom: 0;
+  }
+
+  .signoff {
+    margin-top: 8mm;
+    font-size: 10pt;
+    color: #2b2a26;
+  }
+
+  .signoff .signature {
+    display: block;
+    margin-top: 2mm;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <aside class="sidebar">
+      <!-- FIXED: your headshot, from cv_profile.photo -->
+      {{photo_html}}
+
+      <div class="sidebar-body">
+        <section>
+          <h2>Contact</h2>
+          <!-- FIXED: phone, address and email -->
+          {{contact_html}}
+        </section>
+
+        <!-- FIXED: from cv_profile.links. This placeholder is the WHOLE
+             section, heading included, so an empty links field prints
+             nothing rather than a heading standing over a gap. -->
+        {{links_section_html}}
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- FIXED: your name -->
+      <h1 class="name">{{first_name}}<strong>{{last_name}}</strong></h1>
+
+      <!-- TAILORED: matched to the advert's job title -->
+      <p class="headline">{{headline}}</p>
+
+      <div class="rule"></div>
+
+      <p class="meta">
+        {{date}}<br />
+        Re: <strong>{{job_title}}</strong>{{company_line}}
+      </p>
+
+      <!-- TAILORED: the cover note itself, one <p> per paragraph -->
+      <div class="letter">
+        {{cover_note_html}}
+      </div>
+
+      <p class="signoff">
+        Kind regards,
+        <span class="signature">{{full_name}}</span>
+      </p>
+    </main>
+  </div>
+</body>
+</html>

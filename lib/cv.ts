@@ -1,6 +1,9 @@
 import type PocketBase from "pocketbase";
 
-import { readDefaultTemplate } from "@/lib/cv-html";
+import {
+  readDefaultCoverNoteTemplate,
+  readDefaultTemplate,
+} from "@/lib/cv-html";
 import { COLLECTIONS, describePocketBaseError } from "@/lib/pocketbase";
 import type {
   CvExperience,
@@ -245,6 +248,28 @@ export async function loadCvTemplate(pb: PocketBase): Promise<string> {
   }
 
   return readDefaultTemplate();
+}
+
+/**
+ * The cover note design, from PocketBase.
+ *
+ * Read from the SAME record as the CV design — `cv_template` — but from the
+ * `cover_note_html` field. One row holds both, so there is one place to edit
+ * the look of everything the system produces.
+ *
+ * An empty field falls back to templates/cover-note-template.html, which is
+ * also what `npm run setup:pocketbase` seeds into it on first run.
+ */
+export async function loadCoverNoteTemplate(pb: PocketBase): Promise<string> {
+  try {
+    const rows = await pb.collection(COLLECTIONS.template).getFullList();
+    const html = String(rows[0]?.cover_note_html ?? "").trim();
+    if (html) return html;
+  } catch {
+    // No collection, or no row yet — the shipped default still works.
+  }
+
+  return readDefaultCoverNoteTemplate();
 }
 
 /**

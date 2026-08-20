@@ -170,6 +170,11 @@
         "name": "html",
         "type": "text",
         "max": 200000
+      },
+      {
+        "name": "cover_note_html",
+        "type": "text",
+        "max": 200000
       }
     ],
     "indexes": []
@@ -235,6 +240,13 @@
       },
       {
         "name": "pdf",
+        "type": "file",
+        "maxSelect": 1,
+        "maxSize": 5242880,
+        "protected": true
+      },
+      {
+        "name": "cover_note_pdf",
         "type": "file",
         "maxSelect": 1,
         "maxSize": 5242880,

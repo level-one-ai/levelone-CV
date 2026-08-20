@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
+import { Download } from "lucide-react";
+
 import CopyButton from "@/components/CopyButton";
 import type { ApplicationRecord } from "@/lib/types";
 
@@ -11,12 +13,15 @@ function Card({
   hint,
   copyText,
   index,
+  action,
   children,
 }: {
   title: string;
   hint?: string;
   copyText: string;
   index: number;
+  /** An extra control beside Copy, e.g. Download PDF. */
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -33,7 +38,10 @@ function Card({
           </h2>
           {hint ? <p className="mt-1 text-fluid-xs text-muted">{hint}</p> : null}
         </div>
-        <CopyButton text={copyText} />
+        <div className="flex shrink-0 items-center gap-2">
+          {action}
+          <CopyButton text={copyText} />
+        </div>
       </header>
       {children}
     </motion.section>
@@ -60,10 +68,28 @@ function Prose({ text }: { text: string }) {
  * The output dashboard: one card per block of text, each independently
  * copyable, because job forms are filled one field at a time.
  */
+/** Matches CopyButton's shape so the two sit together without fuss. */
+function DownloadPdfButton({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      // The route sets Content-Disposition: attachment, so this saves the file
+      // rather than navigating away from the results.
+      className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-fluid-xs font-medium text-muted transition hover:bg-foreground/5 hover:text-foreground"
+    >
+      <Download className="h-3.5 w-3.5" aria-hidden />
+      PDF
+    </a>
+  );
+}
+
 export default function OutputCards({
   application,
+  coverNoteUrl,
 }: {
   application: ApplicationRecord;
+  /** Empty for applications generated before cover note PDFs existed. */
+  coverNoteUrl?: string;
 }) {
   const qaPlainText = application.screening_answers
     .map((qa) => `${qa.question}\n${qa.answer}`)
@@ -76,9 +102,14 @@ export default function OutputCards({
       {application.tailored_intro ? (
         <Card
           title="Cover note"
-          hint="Paste into the application's message or cover letter box."
+          hint="Paste into the application's message or cover letter box — or send the PDF."
           copyText={application.tailored_intro}
           index={index++}
+          action={
+            coverNoteUrl ? (
+              <DownloadPdfButton href={`${coverNoteUrl}&download=1`} />
+            ) : null
+          }
         >
           <Prose text={application.tailored_intro} />
         </Card>

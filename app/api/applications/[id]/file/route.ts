@@ -25,17 +25,27 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const asDownload =
-    new URL(request.url).searchParams.get("download") === "1";
+  const query = new URL(request.url).searchParams;
+  const asDownload = query.get("download") === "1";
+
+  // ?doc=cover-note serves the cover note; anything else serves the CV. Both
+  // live on the same record and are streamed the same way, so one route with
+  // one token flow covers them.
+  const wantsCoverNote = query.get("doc") === "cover-note";
+  const field = wantsCoverNote ? "cover_note_pdf" : "pdf";
 
   try {
     const pb = await superuserClient();
     const record = await pb.collection(COLLECTIONS.applications).getOne(id);
-    const fileName = String(record.pdf ?? "");
+    const fileName = String(record[field] ?? "");
 
     if (!fileName) {
       return NextResponse.json(
-        { error: "This application has no CV document attached." },
+        {
+          error: wantsCoverNote
+            ? "This application has no cover note document. Applications generated before cover note PDFs were added do not have one — regenerate it to get a cover note."
+            : "This application has no CV document attached.",
+        },
         { status: 404 }
       );
     }

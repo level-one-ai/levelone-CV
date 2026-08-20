@@ -320,7 +320,8 @@ would chew holes in ordinary words.
 | Field | Type | Example |
 | --- | --- | --- |
 | `name` | Plain text | `Level One` |
-| `html` | Plain text | the whole design, several thousand characters |
+| `html` | Plain text | the CV design, several thousand characters |
+| `cover_note_html` | Plain text | the cover note design, same idea |
 
 You never need to touch this. It is here so you *can* — change a colour, move a
 section, resize the photo panel — without going near the code.
@@ -329,7 +330,24 @@ section, resize the photo panel — without going near the code.
 overwrite a design that is already there.
 
 **To start again:** delete the row and run the setup command. It puts the
-original design back.
+original designs back.
+
+### `cover_note_html` — the cover note
+
+Same design as the CV — same colours, same dark sidebar, same photo — but the
+sidebar holds **only your contact details and your links**. No skills, no tools,
+no education. It is a letter, not a second CV.
+
+It uses the same placeholders as the CV plus two of its own:
+
+- `{{cover_note_html}}` — your cover note, as paragraphs
+- `{{date}}` — today's date, written out: `20 August 2026`
+
+**If this field is empty**, the app uses the design shipped in
+`templates/cover-note-template.html`, so nothing breaks. Running
+`npm run setup:pocketbase` fills it in for you — and it will fill in an empty
+`cover_note_html` on a row that already has a CV design, without touching that
+design.
 
 The design uses `{{placeholders}}` where your details go. Two kinds:
 
@@ -357,6 +375,7 @@ The design uses `{{placeholders}}` where your details go. Two kinds:
 | `tailored_projects` | JSON | your projects, rewritten for this advert |
 | `screening_answers` | JSON | the question and answer pairs |
 | `pdf` | File | **your finished CV** |
+| `cover_note_pdf` | File | **your cover note**, as its own PDF |
 | `created` | Autodate | when it was made |
 | `updated` | Autodate | when it last changed |
 

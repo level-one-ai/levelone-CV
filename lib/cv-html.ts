@@ -342,6 +342,15 @@ export async function readDefaultTemplate(): Promise<string> {
   return readFile(defaultTemplatePath(), "utf8");
 }
 
+/** Same, for the cover note design. */
+export function defaultCoverNotePath(): string {
+  return path.join(process.cwd(), "templates", "cover-note-template.html");
+}
+
+export async function readDefaultCoverNoteTemplate(): Promise<string> {
+  return readFile(defaultCoverNotePath(), "utf8");
+}
+
 /**
  * Fills every placeholder in the template.
  *
@@ -411,4 +420,99 @@ export function buildCvHtml({
       ? values[key.toLowerCase()]
       : ""
   );
+}
+
+/**
+ * Turns the cover note's plain text into paragraphs.
+ *
+ * Gemini writes it as prose separated by blank lines, the same shape the on
+ * screen card renders. A single line break inside a paragraph becomes a <br>
+ * rather than a new paragraph, because that is almost always a wrapped line
+ * rather than an intended break.
+ */
+function coverNoteParagraphs(text: string): string {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  if (!paragraphs.length) return "";
+
+  return paragraphs
+    .map((block) => `<p>${esc(block).replace(/\n/g, "<br />")}</p>`)
+    .join("\n");
+}
+
+/** "20 August 2026" — the form a letter uses, not an ISO stamp. */
+function letterDate(when: Date): string {
+  return when.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/**
+ * Fills the cover note template.
+ *
+ * Shares every sidebar block with the CV — the same photo, contact rows and
+ * links — because the two documents arrive together and a reader should see one
+ * hand behind both. What it deliberately does NOT share is the rest of the
+ * sidebar: skills, tools and education belong on a CV, and repeating them on a
+ * letter reads as padding.
+ *
+ * Unknown placeholders are blanked, same as the CV, so a typo in a template
+ * edited inside PocketBase leaves a gap rather than printing braces.
+ */
+export function buildCoverNoteHtml({
+  template,
+  application,
+  cv,
+  photo,
+  now = new Date(),
+}: {
+  template: string;
+  application: GeneratedApplication;
+  cv: MasterCv;
+  photo: { data: Buffer; mime: string } | null;
+  now?: Date;
+}): string {
+  const { first, last } = splitName(cv.profile.full_name);
+  const company = application.company?.trim() ?? "";
+
+  const values: Record<string, string> = {
+    full_name: esc(cv.profile.full_name),
+    first_name: esc(first),
+    last_name: esc(last),
+    headline: esc(application.cv_headline || cv.profile.headline),
+    job_title: esc(application.job_title),
+    company: esc(company),
+    // Rendered as one piece so an advert with no named employer does not print
+    // a dangling " at ".
+    company_line: company ? ` at ${esc(company)}` : "",
+    email: esc(cv.profile.email),
+    phone: esc(cv.profile.phone),
+    location: esc(cv.profile.location),
+    date: esc(letterDate(now)),
+
+    photo_html: photoBlock(photo),
+    contact_html: contactBlock(cv),
+    links_html: linksBlock(cv),
+    links_section_html: linksSectionBlock(cv),
+    cover_note_html: coverNoteParagraphs(application.tailored_intro ?? ""),
+  };
+
+  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_match, key: string) =>
+    Object.prototype.hasOwnProperty.call(values, key.toLowerCase())
+      ? values[key.toLowerCase()]
+      : ""
+  );
+}
+
+/** `Cover-Note-Dean-Finlayson-AI-Engineer-Acme.pdf`. */
+export function buildCoverNoteFileName(
+  application: GeneratedApplication,
+  fullName: string
+): string {
+  return buildFileName(application, fullName).replace(/^CV-/, "Cover-Note-");
 }

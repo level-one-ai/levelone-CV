@@ -299,20 +299,35 @@ console.log(`${tick} Done — ${parts.join(", ")}.`);
 try {
   const existing = await pb.collection("cv_template").getFullList();
 
+  const read = (file) =>
+    readFile(path.join(process.cwd(), "templates", file), "utf8");
+
   if (existing.length === 0) {
-    const html = await readFile(
-      path.join(process.cwd(), "templates", "cv-template.html"),
-      "utf8"
-    );
-    await pb.collection("cv_template").create({ name: "Level One", html });
+    await pb.collection("cv_template").create({
+      name: "Level One",
+      html: await read("cv-template.html"),
+      cover_note_html: await read("cover-note-template.html"),
+    });
     console.log("");
-    console.log(`${tick} CV design loaded into cv_template.`);
-    console.log("  Edit it there any time — the app uses that copy from now on.");
+    console.log(`${tick} CV and cover note designs loaded into cv_template.`);
+    console.log("  Edit them there any time — the app uses that copy from now on.");
   } else {
-    // Overwriting here would silently destroy hand-made design edits, which is
-    // exactly the kind of data loss this script promises never to cause.
-    console.log("");
-    console.log(`${tick} cv_template already has a design — left untouched.`);
+    // Overwriting a design would silently destroy hand-made edits, which is
+    // exactly the kind of data loss this script promises never to cause. An
+    // EMPTY field is different: there is nothing to lose, and a blank
+    // cover_note_html on an existing row is what everyone upgrading will have.
+    const row = existing[0];
+    if (!String(row.cover_note_html ?? "").trim()) {
+      await pb.collection("cv_template").update(row.id, {
+        cover_note_html: await read("cover-note-template.html"),
+      });
+      console.log("");
+      console.log(`${tick} cover_note_html was empty — the design has been added.`);
+      console.log("  Your existing CV design was not touched.");
+    } else {
+      console.log("");
+      console.log(`${tick} cv_template already has both designs — left untouched.`);
+    }
   }
 } catch (err) {
   console.log("");
