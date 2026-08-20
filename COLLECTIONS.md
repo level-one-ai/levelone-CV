@@ -332,6 +332,29 @@ overwrite a design that is already there.
 **To start again:** delete the row and run the setup command. It puts the
 original designs back.
 
+### You do not have to use this collection at all
+
+**Both designs are already built into the app.** They live in
+`templates/cv-template.html` and `templates/cover-note-template.html`, and the
+app uses them automatically whenever the PocketBase copy is empty or missing.
+
+So if editing HTML inside a database field is more trouble than it is worth,
+leave `html` and `cover_note_html` empty — or delete the fields entirely. Every
+CV and cover note still generates exactly as it does now. This collection exists
+so you *can* change the look without touching code, not because anything
+depends on it.
+
+### The two designs are not interchangeable
+
+`html` holds the **CV** design. `cover_note_html` holds the **cover note**
+design. They look similar and sit next to each other, so it is an easy swap to
+make — and it used to fail silently, producing a CV with no work history on it.
+
+The app now checks: a CV design must contain `{{experience_html}}` and a cover
+note design must contain `{{cover_note_html}}`. Paste one into the other's box
+and it is ignored, the built-in design is used instead, and a line explaining
+which field is wrong appears in the server log.
+
 ### If a design will not save
 
 **Set `Max length` to `200000` on `html` and on `cover_note_html`.**

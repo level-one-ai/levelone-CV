@@ -238,11 +238,51 @@ export async function loadProfilePhoto(
  * The CV design, preferring the copy in PocketBase so edits made in the admin
  * UI take effect, and falling back to the file shipped in the repo.
  */
+/**
+ * A placeholder that only ever appears in one kind of template, used to tell
+ * them apart. The two designs look similar and are edited in adjacent fields,
+ * so pasting one into the other's box is an easy mistake — and a silent one,
+ * because the wrong design still renders happily. It just renders a CV with no
+ * work history on it.
+ */
+const TEMPLATE_MARKERS = {
+  cv: "{{experience_html}}",
+  coverNote: "{{cover_note_html}}",
+} as const;
+
+/**
+ * Rejects a stored template that is plainly the wrong document.
+ *
+ * Falling back to the shipped copy is always safe: the worst case is that an
+ * edit made in PocketBase is ignored, which is a great deal better than sending
+ * an employer a CV built from a cover note.
+ */
+function usable(html: string, kind: keyof typeof TEMPLATE_MARKERS): boolean {
+  if (!html) return false;
+  if (html.includes(TEMPLATE_MARKERS[kind])) return true;
+
+  const other = kind === "cv" ? "coverNote" : "cv";
+  const looksLikeTheOther = html.includes(TEMPLATE_MARKERS[other]);
+
+  console.warn(
+    `[cv_template] The ${kind === "cv" ? "html" : "cover_note_html"} field does not ` +
+      `contain ${TEMPLATE_MARKERS[kind]}, so it is not a ${
+        kind === "cv" ? "CV" : "cover note"
+      } design` +
+      (looksLikeTheOther
+        ? ` — it looks like the ${other === "cv" ? "CV" : "cover note"} design, ` +
+          "pasted into the wrong field."
+        : ".") +
+      " Using the built-in design instead."
+  );
+  return false;
+}
+
 export async function loadCvTemplate(pb: PocketBase): Promise<string> {
   try {
     const rows = await pb.collection(COLLECTIONS.template).getFullList();
     const html = String(rows[0]?.html ?? "").trim();
-    if (html) return html;
+    if (usable(html, "cv")) return html;
   } catch {
     // No collection, or it is empty — fall through to the shipped default.
   }
@@ -264,7 +304,7 @@ export async function loadCoverNoteTemplate(pb: PocketBase): Promise<string> {
   try {
     const rows = await pb.collection(COLLECTIONS.template).getFullList();
     const html = String(rows[0]?.cover_note_html ?? "").trim();
-    if (html) return html;
+    if (usable(html, "coverNote")) return html;
   } catch {
     // No collection, or no row yet — the shipped default still works.
   }

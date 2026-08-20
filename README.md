@@ -128,7 +128,14 @@ cover note card.
 
 Its design lives in **`cv_template.cover_note_html`**, next to the CV design in
 the same row, so both are edited in one place. Empty field falls back to
-`templates/cover-note-template.html`.
+`templates/cover-note-template.html` — PocketBase is optional for templates,
+not required.
+
+Each loader checks the stored template is the right kind of document — a CV
+design must contain `{{experience_html}}`, a cover note `{{cover_note_html}}`.
+The two designs sit in adjacent fields and look alike, so swapping them is an
+easy mistake, and one that otherwise renders a perfectly tidy CV with no work
+history on it.
 
 Records generated before this existed have no cover note PDF; the button simply
 does not appear for them.
