@@ -53,7 +53,8 @@ export default function HomePage() {
 
   const [history, setHistory] = useState<ApplicationSummary[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [viewerOpen, setViewerOpen] = useState(false);
+  /** Which document the split-screen panel is showing, if any. */
+  const [viewing, setViewing] = useState<"cv" | "cover-note" | null>(null);
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -76,6 +77,9 @@ export default function HomePage() {
     if (window.matchMedia("(max-width: 1024px)").matches) setSidebarOpen(false);
   }, []);
 
+  const viewingUrl =
+    viewing === "cv" ? docUrl : viewing === "cover-note" ? coverNoteUrl : "";
+
   function show(payload: GenerateResponse) {
     setApplication(payload.application);
     setDocUrl(payload.docUrl);
@@ -94,7 +98,7 @@ export default function HomePage() {
     setStatus("loading");
     setError("");
     setDuplicate(null);
-    setViewerOpen(false);
+    setViewing(null);
 
     try {
       const response = await fetch("/api/generate-application", {
@@ -131,7 +135,7 @@ export default function HomePage() {
   async function handleSelect(id: string) {
     setStatus("loading");
     setError("");
-    setViewerOpen(false);
+    setViewing(null);
 
     try {
       const response = await fetch(`/api/applications/${id}`);
@@ -165,13 +169,13 @@ export default function HomePage() {
     setCoverNoteUrl("");
     setError("");
     setDuplicate(null);
-    setViewerOpen(false);
+    setViewing(null);
     setStatus("idle");
   }
 
   return (
     <div className="flex h-[100dvh] w-screen overflow-hidden">
-      <Background3D busy={status === "loading"} dimmed={viewerOpen} />
+      <Background3D busy={status === "loading"} dimmed={viewing !== null} />
 
       <HistorySidebar
         items={history}
@@ -184,23 +188,27 @@ export default function HomePage() {
       />
 
       <AnimatePresence initial={false}>
-        {viewerOpen && docUrl && application ? (
+        {viewingUrl && application ? (
           <CvViewerPanel
-            key={docUrl}
-            docUrl={docUrl}
+            // Keyed on the URL so switching between the CV and the cover note
+            // remounts the panel and re-checks the document, rather than
+            // leaving the previous PDF on screen.
+            key={viewingUrl}
+            docUrl={viewingUrl}
+            label={viewing === "cover-note" ? "Cover note" : "Updated CV"}
             title={
               application.company
                 ? `${application.job_title} · ${application.company}`
                 : application.job_title
             }
-            onClose={() => setViewerOpen(false)}
+            onClose={() => setViewing(null)}
           />
         ) : null}
       </AnimatePresence>
 
       <main
         className={`custom-scrollbar min-w-0 flex-1 overflow-y-auto ${
-          viewerOpen ? "hidden lg:block" : "block"
+          viewing ? "hidden lg:block" : "block"
         }`}
       >
         <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center gap-8 px-4 py-10 sm:px-6">
@@ -230,16 +238,24 @@ export default function HomePage() {
                 <OutputCards
                   application={application}
                   coverNoteUrl={coverNoteUrl}
+                  viewingCoverNote={viewing === "cover-note"}
+                  onToggleCoverNote={() =>
+                    setViewing((current) =>
+                      current === "cover-note" ? null : "cover-note"
+                    )
+                  }
                 />
 
                 <div className="flex flex-wrap items-center justify-center gap-3 pb-2">
                   <button
                     type="button"
-                    onClick={() => setViewerOpen((open) => !open)}
+                    onClick={() =>
+                      setViewing((current) => (current === "cv" ? null : "cv"))
+                    }
                     className="btn-primary"
                   >
                     <FileText className="h-4 w-4" aria-hidden />
-                    {viewerOpen ? "Hide CV" : "View updated CV"}
+                    {viewing === "cv" ? "Hide CV" : "View updated CV"}
                   </button>
                   <button type="button" onClick={handleNew} className="btn-ghost">
                     <RotateCcw className="h-4 w-4" aria-hidden />

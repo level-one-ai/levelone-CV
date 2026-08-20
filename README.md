@@ -137,8 +137,15 @@ The two designs sit in adjacent fields and look alike, so swapping them is an
 easy mistake, and one that otherwise renders a perfectly tidy CV with no work
 history on it.
 
-Records generated before this existed have no cover note PDF; the button simply
-does not appear for them.
+**View cover note** under the cover note card opens it in the same split-screen
+panel the CV uses, and **PDF** on the card header downloads it directly. The
+panel shows one document at a time, so viewing one closes the other.
+
+Records generated before this existed have no cover note PDF; both buttons
+simply do not appear for them. **This is also why the buttons are missing on an
+application generated before you ran `npm run setup:pocketbase`** — the file was
+never stored, so there is nothing to show. Generate the application again and
+both appear.
 
 ## Keeping it to one page
 

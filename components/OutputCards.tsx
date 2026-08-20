@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 
 import CopyButton from "@/components/CopyButton";
 import type { ApplicationRecord } from "@/lib/types";
@@ -86,10 +86,14 @@ function DownloadPdfButton({ href }: { href: string }) {
 export default function OutputCards({
   application,
   coverNoteUrl,
+  viewingCoverNote = false,
+  onToggleCoverNote,
 }: {
   application: ApplicationRecord;
   /** Empty for applications generated before cover note PDFs existed. */
   coverNoteUrl?: string;
+  viewingCoverNote?: boolean;
+  onToggleCoverNote?: () => void;
 }) {
   const qaPlainText = application.screening_answers
     .map((qa) => `${qa.question}\n${qa.answer}`)
@@ -112,6 +116,22 @@ export default function OutputCards({
           }
         >
           <Prose text={application.tailored_intro} />
+
+          {coverNoteUrl && onToggleCoverNote ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+              <button
+                type="button"
+                onClick={onToggleCoverNote}
+                className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-fluid-xs font-medium text-canvas transition hover:bg-foreground/90"
+              >
+                <FileText className="h-3.5 w-3.5" aria-hidden />
+                {viewingCoverNote ? "Hide cover note" : "View cover note"}
+              </button>
+              <p className="text-fluid-xs text-muted">
+                Opens the PDF beside this, same as the CV.
+              </p>
+            </div>
+          ) : null}
         </Card>
       ) : null}
 

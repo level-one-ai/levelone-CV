@@ -23,6 +23,7 @@
  *
  * The worst it can do is add something.
  */
+import { statSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -181,6 +182,33 @@ if (JSON_ONLY) {
 
 // --------------------------------------------------------------------------
 
+/**
+ * The size of the content this field really has to hold, when we know it.
+ * Only the template fields have a knowable size — everything else (a pasted job
+ * advert, say) varies, so those return null and are judged against the schema.
+ */
+const TEMPLATE_FILES = {
+  "cv_template.html": "cv-template.html",
+  "cv_template.cover_note_html": "cover-note-template.html",
+};
+
+const sizeCache = new Map();
+
+function requiredSize(collection, field) {
+  const file = TEMPLATE_FILES[`${collection}.${field}`];
+  if (!file) return null;
+  if (sizeCache.has(file)) return sizeCache.get(file);
+
+  let size = null;
+  try {
+    size = statSync(path.join(process.cwd(), "templates", file)).size;
+  } catch {
+    // Template missing from the checkout: nothing to measure against.
+  }
+  sizeCache.set(file, size);
+  return size;
+}
+
 const env = await readEnvLocal();
 const url = env.NEXT_PUBLIC_POCKETBASE_URL || "http://127.0.0.1:8090";
 const email = env.POCKETBASE_ADMIN_EMAIL;
@@ -256,15 +284,28 @@ for (const wanted of COLLECTIONS) {
   // 5000 characters — so `cover_note_html` looks present and correct and then
   // refuses the design, with no clue as to why. Checking names alone missed
   // this entirely, which is exactly how it reached a live database.
+  //
+  // "Too small" means too small for what actually has to go in it, not simply
+  // below the generous limit this schema pins. A field set to 20000 holds both
+  // designs comfortably, and shouting BROKEN at it would be crying wolf — the
+  // fastest way to teach someone to ignore the warning that matters.
   const tooSmall = [];
   for (const want of wanted.fields) {
     if (want.type !== "text" || !want.max) continue;
     const have = byName.get(want.name);
     if (!have) continue;
+
     const effective = have.max || POCKETBASE_DEFAULT_TEXT_MAX;
-    if (effective < want.max) {
-      tooSmall.push({ name: want.name, have: effective, want: want.max });
-    }
+    if (effective >= want.max) continue;
+
+    const needs = requiredSize(wanted.name, want.name);
+    tooSmall.push({
+      name: want.name,
+      have: effective,
+      want: want.max,
+      needs,
+      breaking: needs !== null && effective < needs,
+    });
   }
 
   if (missing.length === 0 && tooSmall.length === 0) {
@@ -283,7 +324,9 @@ for (const wanted of COLLECTIONS) {
     }
     for (const f of tooSmall) {
       console.log(
-        `  ${arrow} ${wanted.name.padEnd(15)} ${f.name} holds only ${f.have} characters, needs ${f.want}`
+        f.breaking
+          ? `  ${arrow} ${wanted.name.padEnd(15)} ${f.name} holds only ${f.have} characters — the design needs ${f.needs}`
+          : `  ${arrow} ${wanted.name.padEnd(15)} ${f.name} max is ${f.have}; ${f.want} is recommended (works for now)`
       );
     }
     wouldChange++;
@@ -319,11 +362,16 @@ for (const wanted of COLLECTIONS) {
           `  ${tick} ${wanted.name.padEnd(15)} ${f.name} max raised ${f.have} -> ${f.want}`
         );
         repaired++;
-      } else {
+      } else if (f.breaking) {
         limitProblems.push({ collection: wanted.name, ...f });
         console.log(
-          `  !  ${wanted.name.padEnd(15)} ${f.name} holds only ${f.have} characters, needs ${f.want}`
+          `  !  ${wanted.name.padEnd(15)} ${f.name} holds only ${f.have} characters — the design needs ${f.needs}`
         );
+      } else {
+        console.log(
+          `  ${tick} ${wanted.name.padEnd(15)} ${f.name} max is ${f.have} — fine today; ${f.want} leaves room to grow`
+        );
+        unchanged++;
       }
     }
   } catch (err) {
@@ -359,7 +407,7 @@ if (limitProblems.length) {
   console.log("");
   for (const p of limitProblems) {
     console.log(`  ${p.collection}.${p.name} can hold ${p.have} characters.`);
-    console.log(`  The design needs ${p.want}. Saving it will fail with`);
+    console.log(`  The design is ${p.needs}. Saving it will fail with`);
     console.log(`  "Must be no more than ${p.have} character(s)."`);
     console.log("");
   }
