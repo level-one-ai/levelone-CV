@@ -5,6 +5,7 @@
  *   npm run setup:pocketbase
  *   npm run setup:pocketbase -- --dry-run    (show what would change, write nothing)
  *   npm run setup:pocketbase -- --json       (print import JSON, touch nothing)
+ *   npm run setup:pocketbase -- --fix-limits (raise a text field's max length)
  *
  * It reads the same three settings the app itself uses, from .env.local:
  * NEXT_PUBLIC_POCKETBASE_URL, POCKETBASE_ADMIN_EMAIL, POCKETBASE_ADMIN_PASSWORD.
@@ -13,7 +14,10 @@
  * deliberately additive only:
  *
  *   - it never deletes a collection
- *   - it never deletes or edits an existing field
+ *   - it never deletes or edits an existing field, with one opt-in exception:
+ *     --fix-limits RAISES a text field's max length when it is too small to
+ *     hold what the app must store. Widening cannot truncate anything, and it
+ *     never happens unless you ask for it
  *   - it never touches API rules, so it cannot make a private collection public
  *   - running it twice changes nothing the second time
  *
@@ -24,10 +28,14 @@ import path from "node:path";
 
 import PocketBase from "pocketbase";
 
-import { COLLECTIONS } from "./pocketbase-schema.mjs";
+import {
+  COLLECTIONS,
+  POCKETBASE_DEFAULT_TEXT_MAX,
+} from "./pocketbase-schema.mjs";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const JSON_ONLY = process.argv.includes("--json");
+const FIX_LIMITS = process.argv.includes("--fix-limits");
 
 const tick = "✓";
 const cross = "✗";
@@ -199,6 +207,7 @@ try {
 }
 console.log(`Signed in:  ${email}\n`);
 
+const limitProblems = [];
 let created = 0;
 let repaired = 0;
 let unchanged = 0;
@@ -239,10 +248,26 @@ for (const wanted of COLLECTIONS) {
   }
 
   // ---- collection exists: add only the fields that are missing ----
-  const present = new Set((existing.fields ?? []).map((f) => f.name));
-  const missing = wanted.fields.filter((f) => !present.has(f.name));
+  const byName = new Map((existing.fields ?? []).map((f) => [f.name, f]));
+  const missing = wanted.fields.filter((f) => !byName.has(f.name));
 
-  if (missing.length === 0) {
+  // A field can exist and still be unusable. A text field created by hand with
+  // the Max length box left blank stores max: 0, which PocketBase enforces as
+  // 5000 characters — so `cover_note_html` looks present and correct and then
+  // refuses the design, with no clue as to why. Checking names alone missed
+  // this entirely, which is exactly how it reached a live database.
+  const tooSmall = [];
+  for (const want of wanted.fields) {
+    if (want.type !== "text" || !want.max) continue;
+    const have = byName.get(want.name);
+    if (!have) continue;
+    const effective = have.max || POCKETBASE_DEFAULT_TEXT_MAX;
+    if (effective < want.max) {
+      tooSmall.push({ name: want.name, have: effective, want: want.max });
+    }
+  }
+
+  if (missing.length === 0 && tooSmall.length === 0) {
     console.log(`  ${tick} ${wanted.name.padEnd(15)} already correct`);
     unchanged++;
     continue;
@@ -251,23 +276,56 @@ for (const wanted of COLLECTIONS) {
   const names = missing.map((f) => f.name).join(", ");
 
   if (DRY_RUN) {
-    console.log(
-      `  ${arrow} ${wanted.name.padEnd(15)} would gain ${missing.length} field(s): ${names}`
-    );
+    if (missing.length) {
+      console.log(
+        `  ${arrow} ${wanted.name.padEnd(15)} would gain ${missing.length} field(s): ${names}`
+      );
+    }
+    for (const f of tooSmall) {
+      console.log(
+        `  ${arrow} ${wanted.name.padEnd(15)} ${f.name} holds only ${f.have} characters, needs ${f.want}`
+      );
+    }
     wouldChange++;
     continue;
   }
 
   try {
-    // Existing fields are passed through untouched; only the missing ones are
-    // appended. Nothing already in the collection is edited or removed.
-    await pb.collections.update(existing.id, {
-      fields: [...(existing.fields ?? []), ...missing],
+    // Existing fields are passed through untouched unless --fix-limits was
+    // asked for, and even then the ONLY change is raising a max. Widening a
+    // limit cannot truncate anything, so no data can be lost either way.
+    const carried = (existing.fields ?? []).map((f) => {
+      if (!FIX_LIMITS) return f;
+      const fix = tooSmall.find((t) => t.name === f.name);
+      return fix ? { ...f, max: fix.want } : f;
     });
-    console.log(
-      `  ${tick} ${wanted.name.padEnd(15)} added ${missing.length} missing field(s): ${names}`
-    );
-    repaired++;
+
+    if (missing.length || (FIX_LIMITS && tooSmall.length)) {
+      await pb.collections.update(existing.id, {
+        fields: [...carried, ...missing],
+      });
+    }
+
+    if (missing.length) {
+      console.log(
+        `  ${tick} ${wanted.name.padEnd(15)} added ${missing.length} missing field(s): ${names}`
+      );
+      repaired++;
+    }
+
+    for (const f of tooSmall) {
+      if (FIX_LIMITS) {
+        console.log(
+          `  ${tick} ${wanted.name.padEnd(15)} ${f.name} max raised ${f.have} -> ${f.want}`
+        );
+        repaired++;
+      } else {
+        limitProblems.push({ collection: wanted.name, ...f });
+        console.log(
+          `  !  ${wanted.name.padEnd(15)} ${f.name} holds only ${f.have} characters, needs ${f.want}`
+        );
+      }
+    }
   } catch (err) {
     bail(`Could not update "${wanted.name}". ${describe(err, url)}`);
   }
@@ -294,6 +352,27 @@ if (repaired) parts.push(`${repaired} repaired`);
 if (unchanged) parts.push(`${unchanged} already correct`);
 
 console.log(`${tick} Done — ${parts.join(", ")}.`);
+
+if (limitProblems.length) {
+  console.log("");
+  console.log(`${cross} ONE THING IS STILL BROKEN.`);
+  console.log("");
+  for (const p of limitProblems) {
+    console.log(`  ${p.collection}.${p.name} can hold ${p.have} characters.`);
+    console.log(`  The design needs ${p.want}. Saving it will fail with`);
+    console.log(`  "Must be no more than ${p.have} character(s)."`);
+    console.log("");
+  }
+  console.log("  A text field created by hand with the Max length box left");
+  console.log("  blank is NOT unlimited — PocketBase treats blank as 5000.");
+  console.log("");
+  console.log("  Fix it in one command:");
+  console.log("");
+  console.log("    npm run setup:pocketbase -- --fix-limits");
+  console.log("");
+  console.log("  That only ever RAISES a limit, so nothing can be truncated.");
+  console.log("  Or set Max length by hand in the admin page and re-run this.");
+}
 
 // ---- seed the CV design, but never overwrite an edited one ----------------
 try {
@@ -331,8 +410,10 @@ try {
   }
 } catch (err) {
   console.log("");
-  console.log(`!  Could not load the CV design: ${describe(err, url)}`);
-  console.log("   The app falls back to templates/cv-template.html, so this is not fatal.");
+  console.log(`!  Could not load the designs into cv_template: ${describe(err, url)}`);
+  console.log("   The app falls back to the copies in templates/, so this is not");
+  console.log("   fatal — but edits made in the admin page will not take effect");
+  console.log("   until the field can actually hold the design.");
 }
 
 // Skills used to live in their own collection. Point out the leftover rather

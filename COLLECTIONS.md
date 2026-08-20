@@ -332,6 +332,29 @@ overwrite a design that is already there.
 **To start again:** delete the row and run the setup command. It puts the
 original designs back.
 
+### If a design will not save
+
+**Set `Max length` to `200000` on `html` and on `cover_note_html`.**
+
+A text field created by hand with the **Max length box left blank is not
+unlimited.** PocketBase stores that as `0` and enforces **5000 characters**.
+The cover note design is about 7,800 characters and the CV design about 11,000,
+so both are rejected — the field turns red and saving fails with:
+
+> Must be no more than 5000 character(s).
+
+Measured against PocketBase 0.39.10, so this is the behaviour, not a guess.
+
+One command fixes it:
+
+```bash
+npm run setup:pocketbase -- --fix-limits
+```
+
+That only ever **raises** a limit, so nothing can be truncated, and it loads
+the design in the same run. Plain `npm run setup:pocketbase` will now tell you
+when a field is too small rather than reporting it as correct.
+
 ### `cover_note_html` — the cover note
 
 Same design as the CV — same colours, same dark sidebar, same photo — but the
@@ -399,12 +422,17 @@ To see whether anything is missing, without changing a thing:
 npm run setup:pocketbase -- --dry-run
 ```
 
-It lists any collection or field that is not right yet. Run it without
+It lists any collection or field that is not right yet, including a text field
+whose **Max length is too small to hold what has to go in it**. Run it without
 `--dry-run` to fix them.
 
 **It is always safe to run.** It never deletes a collection, never deletes or
 changes a field you already have, never touches your privacy settings, and
 never overwrites your CV design.
+
+The one exception is `--fix-limits`, and only because you asked for it: that
+raises a text field's Max length when it is too small. Raising a limit cannot
+truncate anything, so there is nothing to lose either way.
 
 ---
 

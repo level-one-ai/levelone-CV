@@ -98,6 +98,7 @@ Then open http://localhost:3000.
 npm run setup:pocketbase             # build the five collections
 npm run setup:pocketbase -- --dry-run # ...or just report what's missing
 npm run setup:pocketbase -- --json   # ...or emit JSON for Import collections
+npm run setup:pocketbase -- --fix-limits # raise a text field's max length
 npm run seed:cv                      # load the CV content
 npm run build                        # production build
 ```
@@ -109,7 +110,11 @@ would be lost, names it, and stops. Only `--force --yes` goes through with it.
 
 `setup:pocketbase` is additive only — it never drops a collection, never edits
 or removes an existing field, and never touches API rules, so it is safe to
-re-run against a database that already holds your CV. The schema it applies
+re-run against a database that already holds your CV. It also reports a text
+field whose max length is too small to hold what the app must store: a hand-made
+field with a blank Max length is capped at 5000 characters by PocketBase, not
+unlimited, which is enough to silently break a template. `--fix-limits` raises
+those, and raising a limit cannot truncate anything. The schema it applies
 lives in `scripts/pocketbase-schema.mjs`, which is the single source of truth
 for what the collections must contain.
 

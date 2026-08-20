@@ -19,6 +19,18 @@
  * server-side. The setup script never touches them.
  */
 
+/**
+ * What PocketBase actually enforces on a text field whose "Max length" box is
+ * left blank. The stored value is 0, which reads like "no limit" and is not:
+ * measured against 0.39.10, a blank max rejects anything over 5000 characters
+ * with validation_max_text_constraint.
+ *
+ * This is why every field here that holds a template sets `max` explicitly. A
+ * designed CV runs to ~11,000 characters and would be refused by a hand-made
+ * field that looks unlimited.
+ */
+export const POCKETBASE_DEFAULT_TEXT_MAX = 5000;
+
 const text = (name, extra = {}) => ({ name, type: "text", ...extra });
 const number = (name) => ({ name, type: "number" });
 /** 2MB is PocketBase's own default ceiling for a json field. */
