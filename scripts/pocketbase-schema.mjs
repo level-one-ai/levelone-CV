@@ -120,6 +120,52 @@ export const COLLECTIONS = [
     ],
   },
   {
+    name: "scraped_jobs",
+    note: "Jobs found by the search, with their score. One row per advert.",
+    // job_url is the identity of a job: the same advert found twice, or a
+    // second search covering the same ground, must not create a second row.
+    // Enforced in the database rather than in code, because two requests can
+    // check-then-insert at the same time and both find nothing.
+    indexes: [
+      "CREATE UNIQUE INDEX `idx_scraped_jobs_url` ON `scraped_jobs` (`job_url`)",
+    ],
+    fields: [
+      text("job_url", { max: 2000 }),
+      text("source"),
+      text("external_id"),
+      text("title"),
+      text("company"),
+      text("location"),
+      text("job_type"),
+      text("date_posted"),
+      text("salary_text"),
+      text("job_level"),
+      text("job_function"),
+      text("company_industry"),
+      text("company_url", { max: 2000 }),
+      text("company_num_employees"),
+      // Same ceiling as applications.job_description, for the same reason:
+      // real adverts are long, and a truncated one scores wrongly and writes
+      // a worse CV.
+      text("description", { max: 30000 }),
+      { name: "is_remote", type: "bool" },
+      number("score"),
+      // "tier-1" | "tier-2". Anything below 40 is never stored.
+      text("tier"),
+      // Why it scored what it did: matched boosts, penalties, and the terms
+      // the advert wants that are missing from your profile.
+      json("score_reasons"),
+      // "new" | "applied" | "dismissed".
+      text("status"),
+      // The applications record id, once you have applied.
+      text("application"),
+      // Sorted on, exactly like applications.created — and missing it is a 400
+      // on the listing rather than an empty page, which is how it was found.
+      { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+      { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
+    ],
+  },
+  {
     name: "applications",
     note: "Every generated application, and the CV document that goes with it.",
     fields: [

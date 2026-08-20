@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
-import { FileText, RotateCcw } from "lucide-react";
+import { FileText, RotateCcw, Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import GeneratingLoader from "@/components/GeneratingLoader";
@@ -261,6 +261,10 @@ export default function HomePage() {
                     <RotateCcw className="h-4 w-4" aria-hidden />
                     New application
                   </button>
+                  <a href="/jobs" className="btn-ghost">
+                    <Search className="h-4 w-4" aria-hidden />
+                    Find jobs
+                  </a>
                 </div>
               </motion.div>
             ) : status === "loading" ? (

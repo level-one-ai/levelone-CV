@@ -59,6 +59,35 @@ docker run -p 3000:3000 --env-file .env.local levelone-cv
 On Coolify, set the build pack to **Dockerfile** (not Nixpacks) and the port to
 3000. SETUP.md, "Putting it on a server", walks through it.
 
+## Finding jobs
+
+`/jobs` searches LinkedIn, Indeed and Google when you press **Find jobs** — on
+demand, never on a schedule. Each result is filtered, scored 0-100, stored in
+`scraped_jobs`, and shown with an **Apply** button that runs the normal
+generation chain against the scraped description.
+
+```
+Find jobs  ─▶  POST /api/jobs/scrape
+                 1. scraper.ts  → spawns scripts/scrape_jobs.py (python-jobspy)
+                 2. job-filter  → title rules, required and banned skills
+                 3. job-score   → 0-100, tier, and the gaps in your profile
+                 4. PocketBase  → scraped_jobs, deduped on a unique job_url
+```
+
+Three things worth knowing before you rely on it:
+
+- **LinkedIn rate limits at around ten pages from one IP**, and descriptions
+  need one extra request each. Runs are deliberately small and slow. A partial
+  result with a note is normal, not a failure.
+- **Applicant counts are not available.** jobspy does not return them.
+- **The score measures the advert, not you.** It rewards LangGraph, RAG, vector
+  databases and FastAPI, so the highest-scoring jobs can be the ones your CV can
+  least support. Each card therefore lists the wanted terms that are missing
+  from your profile — read that line before the number.
+
+Job searching needs Python and `python-jobspy`. Both are in the Docker image;
+locally, `pip install --break-system-packages python-jobspy`.
+
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS ·
@@ -79,6 +108,11 @@ PocketBase · `@google/genai` · `playwright-core` driving headless Chromium ·
 | `components/` | Sidebar, composer, loader, cards, document viewer |
 | `templates/cv-template.html` | The default CV design, seeded into PocketBase |
 | `templates/cover-note-template.html` | The cover note design, likewise |
+| `lib/scraper.ts` | Runs the Python scraper and types its output |
+| `lib/job-filter.ts` · `lib/job-score.ts` | The rules and the 0-100 score, pure |
+| `lib/jobs.ts` | Stores and lists scraped jobs |
+| `app/jobs/page.tsx` | The job board |
+| `scripts/scrape_jobs.py` | The only Python: jobspy in, JSON out |
 
 ## Running it
 

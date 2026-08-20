@@ -446,6 +446,29 @@ function redactBlock(text: string, names: string[]): string {
     .join("\n");
 }
 
+/**
+ * Facts about availability that no advert supplies and no CV field holds.
+ *
+ * Deliberately short, and deliberately only things that are TRUE and that the
+ * candidate alone can assert. Notice period and where he is willing to work are
+ * exactly that. Skills are NOT — they belong in cv_profile, where the CV can
+ * back them up, and smuggling one in here would be inventing a claim through a
+ * side door rather than in the open. That is worse, not better.
+ *
+ * Override with CV_CANDIDATE_CONTEXT; set it empty to omit the block.
+ */
+function candidateContext(): string[] {
+  const custom = process.env.CV_CANDIDATE_CONTEXT?.trim();
+  if (custom === "") return [];
+
+  const facts =
+    custom ??
+    "Available immediately, no notice period to serve. " +
+      "Based in Edinburgh and open to hybrid or UK-wide remote work.";
+
+  return ["=== CANDIDATE AVAILABILITY ===", facts, ""];
+}
+
 export function buildPrompt(jobDescription: string, cv: MasterCv): string {
   // The candidate's own notes are scrubbed BEFORE the model sees them. Telling
   // it not to print a client name is a request; not showing it the name in the
@@ -455,6 +478,7 @@ export function buildPrompt(jobDescription: string, cv: MasterCv): string {
 
   return [
     ...forbiddenNamesBlock(cv),
+    ...candidateContext(),
     "=== CANDIDATE MASTER CV ===",
     cvText,
     "",

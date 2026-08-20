@@ -9,6 +9,7 @@ export const COLLECTIONS = {
   projects: "cv_projects",
   template: "cv_template",
   applications: "applications",
+  scrapedJobs: "scraped_jobs",
 } as const;
 
 /**

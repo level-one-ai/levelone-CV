@@ -62,13 +62,24 @@ WORKDIR /app
 #                       lacks. Small, and better than a row of blank boxes.
 #
 # ca-certificates     — HTTPS to PocketBase and to Gemini.
+# python3 + pip       — job searching runs python-jobspy in a subprocess. It is
+#                       the mature scraper for LinkedIn, Indeed and Google, and
+#                       it is Python. The TypeScript port is a few dozen commits
+#                       old and says itself most of its backends do not work.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         chromium \
         fonts-liberation \
         fonts-dejavu-core \
         ca-certificates \
+        python3 \
+        python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# --break-system-packages because Debian marks the system Python as externally
+# managed (PEP 668). In a container there is no other Python to protect, and a
+# virtualenv here would only add a path to get wrong.
+RUN pip3 install --no-cache-dir --break-system-packages python-jobspy
 
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -78,6 +89,10 @@ ENV PORT=3000
 # missing binary fails loudly instead of falling through to "none of the
 # fifteen places I looked".
 ENV PDF_CHROMIUM_PATH=/usr/bin/chromium
+
+# Which python runs scripts/scrape_jobs.py. Same reasoning as the line above:
+# stated rather than guessed, so a missing interpreter fails loudly.
+ENV PYTHON_BIN=/usr/bin/python3
 
 COPY --from=build --chown=node:node /app ./
 

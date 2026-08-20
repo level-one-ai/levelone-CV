@@ -58,7 +58,7 @@ actual CV content, use `npm run seed:cv` after importing.
 
 ---
 
-## The five collections at a glance
+## The six collections at a glance
 
 | Collection | What it holds | Who fills it in |
 | --- | --- | --- |
@@ -66,6 +66,7 @@ actual CV content, use `npm run seed:cv` after importing.
 | `cv_experience` | Your jobs | **You**, one row per job |
 | `cv_projects` | Your projects | **You**, one row per project |
 | `cv_template` | The CV design, as HTML | Filled in automatically |
+| `scraped_jobs` | Jobs the search found, with their scores | The app |
 | `applications` | Every CV the app has made for you | The app |
 
 You only ever type into the first three.
@@ -404,7 +405,37 @@ The design uses `{{placeholders}}` where your details go. Two kinds:
 
 ---
 
-## 5. `applications`
+## 5. `scraped_jobs`
+
+**You never type in this one.** The job search fills it in.
+
+| Field | Type | What goes in it |
+| --- | --- | --- |
+| `job_url` | Plain text | the advert's address — **unique**, and how repeats are ignored |
+| `source` | Plain text | `linkedin`, `indeed` or `google` |
+| `title` · `company` · `location` | Plain text | as advertised |
+| `date_posted` | Plain text | when it went up |
+| `job_type` · `salary_text` · `job_level` | Plain text | when the board provides them |
+| `company_industry` · `company_num_employees` | Plain text | likewise |
+| `description` | Plain text | the full advert, max 30000 |
+| `is_remote` | Bool | |
+| `score` | Number | 0-100 |
+| `tier` | Plain text | `tier-1` or `tier-2`; below 40 is never stored |
+| `score_reasons` | JSON | what scored, what cost, and what is missing from your profile |
+| `status` | Plain text | `new`, `applied` or `dismissed` |
+| `application` | Plain text | the `applications` id, once you have applied |
+| `created` · `updated` | Autodate | **required** — the listing sorts on `created` |
+
+**There is no applicant count.** The scraper does not return one for any board,
+so there is no field for it.
+
+The unique index on `job_url` is what stops the same advert being stored twice.
+`npm run setup:pocketbase` creates it; a hand-made collection will not have it,
+and without it every search adds fresh copies of everything.
+
+---
+
+## 6. `applications`
 
 **You never type in this one.** The app adds a row every time you generate a CV.
 

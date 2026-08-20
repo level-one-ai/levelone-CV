@@ -163,7 +163,7 @@ function toImportJson() {
     updateRule: null,
     deleteRule: null,
     fields: collection.fields.map((field) => ({ ...field })),
-    indexes: [],
+    indexes: collection.indexes ?? [],
   }));
 }
 
@@ -264,6 +264,7 @@ for (const wanted of COLLECTIONS) {
         name: wanted.name,
         type: "base",
         fields: wanted.fields,
+        ...(wanted.indexes ? { indexes: wanted.indexes } : {}),
       });
       console.log(
         `  ${tick} ${wanted.name.padEnd(15)} created (${wanted.fields.length} fields)`

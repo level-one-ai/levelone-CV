@@ -180,6 +180,120 @@
     "indexes": []
   },
   {
+    "name": "scraped_jobs",
+    "type": "base",
+    "listRule": null,
+    "viewRule": null,
+    "createRule": null,
+    "updateRule": null,
+    "deleteRule": null,
+    "fields": [
+      {
+        "name": "job_url",
+        "type": "text",
+        "max": 2000
+      },
+      {
+        "name": "source",
+        "type": "text"
+      },
+      {
+        "name": "external_id",
+        "type": "text"
+      },
+      {
+        "name": "title",
+        "type": "text"
+      },
+      {
+        "name": "company",
+        "type": "text"
+      },
+      {
+        "name": "location",
+        "type": "text"
+      },
+      {
+        "name": "job_type",
+        "type": "text"
+      },
+      {
+        "name": "date_posted",
+        "type": "text"
+      },
+      {
+        "name": "salary_text",
+        "type": "text"
+      },
+      {
+        "name": "job_level",
+        "type": "text"
+      },
+      {
+        "name": "job_function",
+        "type": "text"
+      },
+      {
+        "name": "company_industry",
+        "type": "text"
+      },
+      {
+        "name": "company_url",
+        "type": "text",
+        "max": 2000
+      },
+      {
+        "name": "company_num_employees",
+        "type": "text"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "max": 30000
+      },
+      {
+        "name": "is_remote",
+        "type": "bool"
+      },
+      {
+        "name": "score",
+        "type": "number"
+      },
+      {
+        "name": "tier",
+        "type": "text"
+      },
+      {
+        "name": "score_reasons",
+        "type": "json",
+        "maxSize": 2000000
+      },
+      {
+        "name": "status",
+        "type": "text"
+      },
+      {
+        "name": "application",
+        "type": "text"
+      },
+      {
+        "name": "created",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "name": "updated",
+        "type": "autodate",
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_scraped_jobs_url` ON `scraped_jobs` (`job_url`)"
+    ]
+  },
+  {
     "name": "applications",
     "type": "base",
     "listRule": null,
