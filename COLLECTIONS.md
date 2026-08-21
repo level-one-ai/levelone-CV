@@ -422,9 +422,19 @@ The design uses `{{placeholders}}` where your details go. Two kinds:
 | `score` | Number | 0-100 |
 | `tier` | Plain text | `tier-1` or `tier-2`; below 40 is never stored |
 | `score_reasons` | JSON | what scored, what cost, and what is missing from your profile |
-| `status` | Plain text | `new`, `applied` or `dismissed` |
+| `status` | **Select** | `Scraped`, `Applied`, `Dismissed` — all three needed |
 | `application` | Plain text | the `applications` id, once you have applied |
 | `created` · `updated` | Autodate | **required** — the listing sorts on `created` |
+
+**`status` must be a single-select with all three options**, spelled and
+capitalised exactly as above. A select field refuses any value not on its own
+list, so a missing option means the save fails with "Invalid value" and the
+whole job is lost. `npm run setup:pocketbase` checks this and tells you which
+option is missing.
+
+- **Scraped** — found by a search, still waiting on you
+- **Applied** — you pressed *Apply to Position*
+- **Dismissed** — you pressed *Not interested*
 
 **There is no applicant count.** The scraper does not return one for any board,
 so there is no field for it.

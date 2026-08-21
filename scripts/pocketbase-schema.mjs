@@ -155,8 +155,16 @@ export const COLLECTIONS = [
       // Why it scored what it did: matched boosts, penalties, and the terms
       // the advert wants that are missing from your profile.
       json("score_reasons"),
-      // "new" | "applied" | "dismissed".
-      text("status"),
+      // A single-select, so the admin page shows a dropdown rather than a free
+      // text box. The app writes these exact strings — a select REJECTS
+      // anything else, so the options and the code have to agree, capitals
+      // included. JOB_STATUSES in lib/jobs.ts is the other half of this pair.
+      {
+        name: "status",
+        type: "select",
+        maxSelect: 1,
+        values: ["Scraped", "Applied", "Dismissed"],
+      },
       // The applications record id, once you have applied.
       text("application"),
       // Sorted on, exactly like applications.created — and missing it is a 400

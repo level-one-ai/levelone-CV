@@ -270,7 +270,13 @@
       },
       {
         "name": "status",
-        "type": "text"
+        "type": "select",
+        "maxSelect": 1,
+        "values": [
+          "Scraped",
+          "Applied",
+          "Dismissed"
+        ]
       },
       {
         "name": "application",

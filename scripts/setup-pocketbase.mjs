@@ -236,6 +236,7 @@ try {
 console.log(`Signed in:  ${email}\n`);
 
 const limitProblems = [];
+const optionProblems = [];
 let created = 0;
 let repaired = 0;
 let unchanged = 0;
@@ -290,6 +291,24 @@ for (const wanted of COLLECTIONS) {
   // below the generous limit this schema pins. A field set to 20000 holds both
   // designs comfortably, and shouting BROKEN at it would be crying wolf — the
   // fastest way to teach someone to ignore the warning that matters.
+  // A select field REJECTS any value outside its option list, so options that
+  // no longer match what the app writes turn every insert into a 400. Found
+  // the hard way: scraped_jobs.status was edited to a select with two of the
+  // three values, and a whole search failed with the reason buried in a
+  // validation error.
+  const badOptions = [];
+  for (const want of wanted.fields) {
+    if (want.type !== "select" || !want.values) continue;
+    const have = byName.get(want.name);
+    if (!have) continue;
+
+    const present = new Set(have.values ?? []);
+    const missing = want.values.filter((value) => !present.has(value));
+    if (missing.length) {
+      badOptions.push({ name: want.name, missing, want: want.values });
+    }
+  }
+
   const tooSmall = [];
   for (const want of wanted.fields) {
     if (want.type !== "text" || !want.max) continue;
@@ -309,7 +328,7 @@ for (const wanted of COLLECTIONS) {
     });
   }
 
-  if (missing.length === 0 && tooSmall.length === 0) {
+  if (missing.length === 0 && tooSmall.length === 0 && badOptions.length === 0) {
     console.log(`  ${tick} ${wanted.name.padEnd(15)} already correct`);
     unchanged++;
     continue;
@@ -328,6 +347,11 @@ for (const wanted of COLLECTIONS) {
         f.breaking
           ? `  ${arrow} ${wanted.name.padEnd(15)} ${f.name} holds only ${f.have} characters — the design needs ${f.needs}`
           : `  ${arrow} ${wanted.name.padEnd(15)} ${f.name} max is ${f.have}; ${f.want} is recommended (works for now)`
+      );
+    }
+    for (const f of badOptions) {
+      console.log(
+        `  ${arrow} ${wanted.name.padEnd(15)} ${f.name} is missing the option(s): ${f.missing.join(", ")}`
       );
     }
     wouldChange++;
@@ -375,6 +399,12 @@ for (const wanted of COLLECTIONS) {
         unchanged++;
       }
     }
+    for (const f of badOptions) {
+      optionProblems.push({ collection: wanted.name, ...f });
+      console.log(
+        `  !  ${wanted.name.padEnd(15)} ${f.name} is missing the option(s): ${f.missing.join(", ")}`
+      );
+    }
   } catch (err) {
     bail(`Could not update "${wanted.name}". ${describe(err, url)}`);
   }
@@ -401,6 +431,22 @@ if (repaired) parts.push(`${repaired} repaired`);
 if (unchanged) parts.push(`${unchanged} already correct`);
 
 console.log(`${tick} Done — ${parts.join(", ")}.`);
+
+if (optionProblems.length) {
+  console.log("");
+  console.log(`${cross} A DROPDOWN FIELD WILL REJECT WHAT THE APP WRITES.`);
+  console.log("");
+  for (const p of optionProblems) {
+    console.log(`  ${p.collection}.${p.name} has no option for: ${p.missing.join(", ")}`);
+    console.log(`  It needs all of: ${p.want.join(", ")}`);
+    console.log("");
+  }
+  console.log("  A single-select field only accepts values from its own list,");
+  console.log("  so anything else fails with \"Invalid value\" and the whole");
+  console.log("  save is refused. Open the field in the admin page and add the");
+  console.log("  missing options, spelled and capitalised exactly as above.");
+  console.log("");
+}
 
 if (limitProblems.length) {
   console.log("");

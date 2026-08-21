@@ -34,6 +34,76 @@ export const BOOSTS: ReadonlyArray<[term: string, points: number]> = [
   ["inside ir35", 5],
 ];
 
+/**
+ * What the candidate can actually evidence.
+ *
+ * The list above rewards a stack he does not have — LangGraph, RAG, vector
+ * databases, FastAPI — which is why his first board showed a 100% beside a job
+ * wanting five things his CV cannot support. This second list rewards what four
+ * years of running Level One actually produced: shipping whole systems, the
+ * tools he really uses, working directly with the people who need the thing,
+ * and employers who hire on evidence rather than credentials.
+ *
+ * Individually small on purpose, and capped as a group below. A CV is not made
+ * strong by an advert using the word "stakeholder" nine times.
+ */
+export const EVIDENCE: ReadonlyArray<[term: string, points: number]> = [
+  // Shipping whole things, which is the actual differentiator.
+  ["end to end", 6],
+  ["end-to-end", 6],
+  ["greenfield", 5],
+  ["from scratch", 5],
+  ["ownership", 4],
+  ["production support", 4],
+
+  // The tools he genuinely works in.
+  ["n8n", 8],
+  ["make.com", 6],
+  ["zapier", 4],
+  ["webhook", 5],
+  ["integration", 5],
+  ["automation", 6],
+  ["typescript", 5],
+  ["next.js", 4],
+  ["react", 3],
+  ["postgres", 3],
+  ["self-hosted", 5],
+  ["no-code", 5],
+  ["low-code", 5],
+
+  // Working with people, which is where the karting and client years count.
+  ["client-facing", 5],
+  ["stakeholder", 4],
+  ["consultancy", 4],
+  ["scoping", 4],
+  ["requirements", 3],
+  ["project management", 4],
+
+  // The kind of place that hires him.
+  ["startup", 4],
+  ["small team", 5],
+  ["generalist", 5],
+  ["full-stack", 5],
+  ["full stack", 5],
+
+  // Employers who hire on evidence rather than credentials.
+  ["no degree", 8],
+  ["degree not required", 8],
+  ["equivalent experience", 7],
+  ["portfolio", 5],
+  ["self-taught", 5],
+];
+
+/**
+ * The most the evidence list can contribute.
+ *
+ * Without a ceiling, a wordy advert that happens to say "automation",
+ * "integration" and "stakeholder" would out-score a genuinely better job, and
+ * every result would drift into Tier 1 — at which point the tiers stop telling
+ * him anything.
+ */
+const MAX_EVIDENCE = 30;
+
 /** Everything that pushes a job down. */
 export const PENALTIES: ReadonlyArray<[term: string, points: number]> = [
   [".net", 30],
@@ -43,6 +113,30 @@ export const PENALTIES: ReadonlyArray<[term: string, points: number]> = [
   ["highq", 20],
   ["sharepoint", 20],
   ["power automate", 15],
+];
+
+/**
+ * Doors that are shut regardless of how well the rest of the advert reads.
+ *
+ * He has a BEng in Civil Engineering, so "a degree" is not the barrier —
+ * "a degree in Computer Science" is.
+ */
+const SHUT_DOOR_PATTERNS: ReadonlyArray<[RegExp, string, number]> = [
+  [
+    /\b(bsc|msc|phd|degree)\b[^.]{0,60}\b(computer science|software engineering|mathematics)\b/i,
+    "computer science degree required",
+    15,
+  ],
+  [
+    /\b(phd|doctorate)\b[^.]{0,40}\b(required|essential)\b/i,
+    "doctorate required",
+    20,
+  ],
+  [
+    /\bmust have\b[^.]{0,40}\bsecurity clearance\b/i,
+    "security clearance required",
+    15,
+  ],
 ];
 
 /**
@@ -66,8 +160,20 @@ const TENURE_PATTERNS: ReadonlyArray<[RegExp, string, number]> = [
 export const TIER_1_MIN = 70;
 export const TIER_2_MIN = 40;
 
-/** Where every job starts before anything is added or taken away. */
-const BASE_SCORE = 50;
+/**
+ * Where every job starts.
+ *
+ * Lowered from 50 when the evidence list was added: roughly 30 more points are
+ * now available to a good advert, and without dropping the floor every result
+ * drifted into Tier 1. Measured against the same six fixture adverts before and
+ * after, so the tiers still separate the same way.
+ *
+ * 38 rather than a round number for a reason: it sits just under the Tier 2
+ * line of 40, so an advert with NOTHING going for it is discarded, and one with
+ * a single concrete signal — one real tool, one honest phrase about how they
+ * work — earns a place on the board. That is the behaviour worth having.
+ */
+const BASE_SCORE = 38;
 
 export interface ScoreReason {
   term: string;
@@ -79,6 +185,10 @@ export interface JobScore {
   tier: Tier;
   boosts: ScoreReason[];
   penalties: ScoreReason[];
+  /** What this advert asks for that he CAN evidence. The other half of gaps. */
+  evidence: ScoreReason[];
+  /** What the evidence list actually contributed, after the cap. */
+  evidenceScore: number;
   /**
    * Terms the advert wants that are NOT in the candidate's own profile.
    *
@@ -107,13 +217,28 @@ export function scoreJob(text: string, profile: readonly string[] = []): JobScor
     if (mentions(text, term)) penalties.push({ term, points });
   }
 
-  for (const [pattern, label, points] of TENURE_PATTERNS) {
+  for (const [pattern, label, points] of [
+    ...TENURE_PATTERNS,
+    ...SHUT_DOOR_PATTERNS,
+  ]) {
     if (pattern.test(text)) penalties.push({ term: label, points });
   }
 
+  // Scored separately so the cap can be applied to this group alone, and so
+  // the card can show "what you bring" apart from "what they asked for".
+  const evidence: ScoreReason[] = [];
+  for (const [term, points] of EVIDENCE) {
+    if (mentions(text, term)) evidence.push({ term, points });
+  }
+  const evidenceScore = Math.min(
+    MAX_EVIDENCE,
+    evidence.reduce((sum, e) => sum + e.points, 0)
+  );
+
   const raw =
     BASE_SCORE +
-    boosts.reduce((sum, b) => sum + b.points, 0) -
+    boosts.reduce((sum, b) => sum + b.points, 0) +
+    evidenceScore -
     penalties.reduce((sum, p) => sum + p.points, 0);
 
   const score = Math.max(0, Math.min(100, raw));
@@ -123,6 +248,8 @@ export function scoreJob(text: string, profile: readonly string[] = []): JobScor
     tier: tierFor(score),
     boosts,
     penalties,
+    evidence,
+    evidenceScore,
     gaps: findGaps(boosts, profile),
   };
 }

@@ -14,7 +14,30 @@ import type { MasterCv } from "@/lib/types";
  * and `lib/job-score.ts`. This is the part that talks to PocketBase.
  */
 
-export type JobStatus = "new" | "applied" | "dismissed";
+/**
+ * The three states a scraped job can be in.
+ *
+ * These strings are stored in a PocketBase SELECT field, which rejects any
+ * value not in its option list — so they must match the options exactly,
+ * capitals included. `npm run setup:pocketbase` configures the field with these
+ * three and warns if an existing one is missing any.
+ */
+export const JOB_STATUSES = ["Scraped", "Applied", "Dismissed"] as const;
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
+/**
+ * Reads a stored status back, tolerantly.
+ *
+ * Case-insensitive so a row typed by hand as "scraped" still loads, and
+ * anything unrecognised falls back to Scraped rather than vanishing from every
+ * view — a job with a odd status should still be visible somewhere.
+ */
+export function asJobStatus(value: unknown): JobStatus {
+  const text = String(value ?? "").trim().toLowerCase();
+  return (
+    JOB_STATUSES.find((status) => status.toLowerCase() === text) ?? "Scraped"
+  );
+}
 
 export interface StoredJob {
   id: string;
@@ -70,8 +93,6 @@ function parseJson<T>(value: unknown, fallback: T): T {
 }
 
 export function toStoredJob(record: RecordModel): StoredJob {
-  const status = String(record.status ?? "new");
-
   return {
     id: record.id,
     job_url: String(record.job_url ?? ""),
@@ -90,9 +111,7 @@ export function toStoredJob(record: RecordModel): StoredJob {
     score: Number(record.score ?? 0),
     tier: String(record.tier ?? ""),
     score_reasons: parseJson<JobScore | null>(record.score_reasons, null),
-    status: (["new", "applied", "dismissed"].includes(status)
-      ? status
-      : "new") as JobStatus,
+    status: asJobStatus(record.status),
     application: String(record.application ?? ""),
     created: String(record.created ?? ""),
   };
@@ -161,7 +180,7 @@ export async function storeScrapedJobs(
         score: scored.score,
         tier: scored.tier,
         score_reasons: scored,
-        status: "new",
+        status: "Scraped",
         application: "",
       });
       summary.added++;
@@ -198,21 +217,67 @@ function isDuplicate(err: unknown): boolean {
   );
 }
 
+/** The views in the sidebar. The URL carries one of these. */
+export const JOB_VIEWS = [
+  "top-match",
+  "all",
+  "not-applied",
+  "applied",
+  "dismissed",
+] as const;
+export type JobView = (typeof JOB_VIEWS)[number];
+
+export function asJobView(value: unknown): JobView {
+  const text = String(value ?? "").trim().toLowerCase();
+  return JOB_VIEWS.find((view) => view === text) ?? "top-match";
+}
+
+/**
+ * What each view asks the database for.
+ *
+ * Sorting differs on purpose: "top match" is about which job is worth the next
+ * hour, so it leads with the score; everything else is a record of what
+ * happened, so it leads with time.
+ */
+const VIEWS: Record<JobView, { filter: string; sort: string }> = {
+  // Worth your time next: never applied to, never dismissed, best first.
+  "top-match": { filter: 'status = "Scraped"', sort: "-score,-created" },
+  all: { filter: "", sort: "-created" },
+  "not-applied": { filter: 'status = "Scraped"', sort: "-created" },
+  applied: { filter: 'status = "Applied"', sort: "-updated,-created" },
+  dismissed: { filter: 'status = "Dismissed"', sort: "-created" },
+};
+
 export async function listJobs(
   pb: PocketBase,
-  { includeDismissed = false }: { includeDismissed?: boolean } = {}
+  view: JobView = "top-match"
 ): Promise<StoredJob[]> {
-  const filter = includeDismissed ? "" : 'status != "dismissed"';
+  const { filter, sort } = VIEWS[view];
 
   const records = await pb
     .collection(COLLECTIONS.scrapedJobs)
-    .getList(1, 200, {
-      // Best match first, then newest — the order he would sort them himself.
-      sort: "-score,-created",
-      filter,
-    });
+    .getList(1, 200, { sort, filter });
 
   return records.items.map(toStoredJob);
+}
+
+/** How many jobs sit in each view, for the counts beside the sidebar links. */
+export async function countByStatus(
+  pb: PocketBase
+): Promise<Record<JobStatus, number>> {
+  const counts = { Scraped: 0, Applied: 0, Dismissed: 0 } as Record<
+    JobStatus,
+    number
+  >;
+
+  // One read rather than three. Two hundred rows is nothing to count in
+  // memory, and it keeps the sidebar off the critical path.
+  const records = await pb
+    .collection(COLLECTIONS.scrapedJobs)
+    .getList(1, 200, { fields: "status" });
+
+  for (const record of records.items) counts[asJobStatus(record.status)]++;
+  return counts;
 }
 
 export async function setJobStatus(

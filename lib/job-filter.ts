@@ -92,7 +92,13 @@ export function mentions(haystack: string, term: string): boolean {
   const escaped = escapeRegExp(lower);
 
   const prefix = /^[^a-z0-9]/.test(lower) ? "" : "\\b";
-  const suffix = /[^a-z0-9]$/.test(lower) ? "(?![a-z0-9])" : "\\b";
+
+  // A trailing "s" is allowed, because adverts are written in the plural far
+  // more often than the singular: "REST APIs", "LLMs", "webhooks", "vector
+  // databases". Without this, "api" misses "REST APIs" — which silently threw
+  // away real jobs until a test caught it. The cost is that "rag" also matches
+  // "rags", which no job advert says.
+  const suffix = /[^a-z0-9]$/.test(lower) ? "(?![a-z0-9])" : "s?\\b";
 
   return new RegExp(`${prefix}${escaped}${suffix}`, "i").test(haystack);
 }

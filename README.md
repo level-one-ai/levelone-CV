@@ -61,10 +61,23 @@ On Coolify, set the build pack to **Dockerfile** (not Nixpacks) and the port to
 
 ## Finding jobs
 
-`/jobs` searches LinkedIn, Indeed and Google when you press **Find jobs** — on
-demand, never on a schedule. Each result is filtered, scored 0-100, stored in
-`scraped_jobs`, and shown with an **Apply** button that runs the normal
-generation chain against the scraped description.
+The front screen is two buttons: **Search Jobs** and **Jobs List**. `/jobs`
+searches LinkedIn, Indeed and Google on demand, never on a schedule. Each result
+is filtered, scored 0-100 and stored in `scraped_jobs`.
+
+The sidebar holds the views: **Top match** (best fit, nothing actioned), **All
+jobs**, **Not applied**, **Applied**, **Not interested**, and **Paste an
+advert** for a job someone sends you directly (the old front screen, now at
+`/paste`).
+
+Applying is two steps, deliberately:
+
+1. **Apply** writes the CV and cover note. Nothing is generated before this — a
+   search of fifty jobs must not cost fifty Gemini calls.
+2. **Apply to Position** opens the advert and marks the job `Applied`.
+
+Splitting them means a job you prepared but did not send stays honestly marked
+as not applied.
 
 ```
 Find jobs  ─▶  POST /api/jobs/scrape
@@ -80,10 +93,13 @@ Three things worth knowing before you rely on it:
   need one extra request each. Runs are deliberately small and slow. A partial
   result with a note is normal, not a failure.
 - **Applicant counts are not available.** jobspy does not return them.
-- **The score measures the advert, not you.** It rewards LangGraph, RAG, vector
-  databases and FastAPI, so the highest-scoring jobs can be the ones your CV can
-  least support. Each card therefore lists the wanted terms that are missing
-  from your profile — read that line before the number.
+- **The score measures the advert, not you.** It rewards two things: the stack
+  these roles ask for (LangGraph, RAG, vector databases, FastAPI) and the things
+  you can actually evidence (shipping end to end, n8n, integrations, client-
+  facing work, employers who hire on portfolio rather than degree). The second
+  group is capped at 30 points so a wordy advert cannot out-score a good one.
+  Each card shows both halves: **You can evidence** in green, **Not on your
+  profile** in amber. Read those before the number.
 
 Job searching needs Python and `python-jobspy`. Both are in the Docker image;
 locally, `pip install --break-system-packages python-jobspy`.
