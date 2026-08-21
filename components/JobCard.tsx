@@ -1,7 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, ExternalLink, FileText, Loader2, MapPin, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+  Loader2,
+  MapPin,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 
 import type { StoredJob } from "@/lib/jobs";
@@ -19,6 +27,28 @@ import type { StoredJob } from "@/lib/jobs";
  * as not applied, rather than the board quietly claiming he applied to things
  * he only looked at.
  */
+
+/** Says WHICH past application this looks like, in a sentence. */
+function describeDuplicate(match: NonNullable<StoredJob["duplicate"]>): string {
+  const when = match.created
+    ? new Date(match.created).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+
+  const what =
+    match.reason === "identical"
+      ? "This is the same advert"
+      : match.reason === "near-identical"
+        ? "This is all but the same advert"
+        : "The same role at the same company";
+
+  const where = [match.job_title, match.company].filter(Boolean).join(" at ");
+
+  return `${what}${where ? ` — ${where}` : ""}${when ? `, ${when}` : ""}.`;
+}
 
 function tierLabel(tier: string): { text: string; className: string } {
   return tier === "tier-1"
@@ -38,12 +68,20 @@ export default function JobCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [applicationId, setApplicationId] = useState(job.application);
+  const [confirmed, setConfirmed] = useState(false);
 
   const tier = tierLabel(job.tier);
   const reasons = job.score_reasons;
-  const gaps = reasons?.gaps ?? [];
+  // A score worked out from a summary can say what the advert DID ask for, but
+  // not what it did not — so the gap list is hidden rather than guessed at.
+  const partial = Boolean(reasons?.partial);
+  const gaps = partial ? [] : reasons?.gaps ?? [];
   const evidence = reasons?.evidence ?? [];
   const prepared = Boolean(applicationId);
+  // A warning, never a block. Two different jobs at one employer are a real
+  // thing, and he is the one who knows which this is.
+  const seenBefore = job.duplicate;
+  const needsConfirming = Boolean(seenBefore) && !confirmed && !prepared;
 
   async function patch(status: StoredJob["status"], application?: string) {
     const response = await fetch("/api/jobs", {
@@ -160,6 +198,24 @@ export default function JobCard({
         </p>
       ) : null}
 
+      {seenBefore ? (
+        <p className="mt-2 flex items-start gap-2 rounded-xl bg-amber-100/80 px-3 py-2 text-fluid-xs text-amber-950">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>
+            <strong>You have applied to this before.</strong>{" "}
+            {describeDuplicate(seenBefore)} Check it is not the same vacancy
+            before you send another.
+          </span>
+        </p>
+      ) : null}
+
+      {partial ? (
+        <p className="mt-2 text-fluid-xs text-muted">
+          This site only gives a summary of the advert. Open the posting for the
+          full description before you apply.
+        </p>
+      ) : null}
+
       {error ? (
         <p role="alert" className="mt-3 text-fluid-xs text-red-700">
           {error}
@@ -170,15 +226,21 @@ export default function JobCard({
         {!prepared ? (
           <button
             type="button"
-            onClick={handlePrepare}
+            onClick={() => (needsConfirming ? setConfirmed(true) : handlePrepare())}
             disabled={busy}
-            className="btn-primary !px-5 !py-2 !text-fluid-xs disabled:opacity-60"
+            className={`!px-5 !py-2 !text-fluid-xs disabled:opacity-60 ${
+              needsConfirming
+                ? "inline-flex items-center gap-1.5 rounded-full border border-amber-400 px-4 py-2 text-amber-900 transition hover:bg-amber-50"
+                : "btn-primary"
+            }`}
           >
             {busy ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                 Writing your CV and cover note…
               </>
+            ) : needsConfirming ? (
+              "Apply anyway"
             ) : (
               "Apply"
             )}

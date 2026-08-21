@@ -9,7 +9,16 @@
  * so the rules can be tested against real adverts rather than through a scrape.
  */
 
-/** Job titles worth looking at. Matched loosely: adverts pad their titles. */
+/**
+ * Job titles worth looking at. Matched loosely: adverts pad their titles.
+ *
+ * Matched as a plain substring of the lower-cased title, so a keyword covers
+ * every job that wraps it — "ai ops" catches "AI Ops Lead" and "Senior AI Ops
+ * Engineer", "ai engineer" catches "Lead AI Engineer (Agentic)". The list is
+ * deliberately generous, because it is only the FIRST gate: the banned-skill
+ * and required-skill rules below still have to pass, so a wide title net costs
+ * nothing except a few more descriptions being read.
+ */
 export const TITLE_KEYWORDS = [
   "ai engineer",
   "applied ai",
@@ -30,6 +39,31 @@ export const TITLE_KEYWORDS = [
   "integration engineer",
   "solution architect",
   "solutions architect",
+
+  // Titles seen being thrown away by the list above. "AI Ops Lead" is the one
+  // that was actually observed getting discarded; the rest are the same shape
+  // of miss — a real AI or automation job whose title simply reads differently.
+  "ai ops",
+  "aiops",
+  "ai operations",
+  "machine learning engineer",
+  "ml engineer",
+  "head of ai",
+  "ai lead",
+  "lead ai",
+  "ai developer",
+  "ai consultant",
+  "ai product engineer",
+  // Palantir's term, now used by a lot of AI startups for exactly the job Dean
+  // does: build the thing in front of the customer.
+  "forward deployed engineer",
+  "automation specialist",
+  "automation consultant",
+  // "platform engineer" on its own is not on this list on purpose: it matches
+  // every DevOps and infrastructure job on the board, and most of them mention
+  // an API somewhere, so the skill rule would not save us. Scoped to AI, it is
+  // a real target title.
+  "ai platform engineer",
 ];
 
 /** At least one of these must appear in the advert. */
@@ -111,6 +145,19 @@ export function matchedTerms(text: string, terms: readonly string[]): string[] {
 export interface JobForFilter {
   title: string;
   description: string;
+  /**
+   * The description is a snippet, not the whole advert.
+   *
+   * Adzuna's search API returns a couple of hundred characters and stops. The
+   * required-skill rule reads the body looking for "python", "llm", "api" — on
+   * a snippet it is reading a marketing sentence, so it would reject nearly
+   * every Adzuna job for saying nothing, which is not the same as saying no.
+   *
+   * So on a partial description the required-skill rule is skipped. The title
+   * rule and the banned-skill rule still run: a .NET role that says ".NET" in
+   * its first two lines is still a .NET role.
+   */
+  partial?: boolean;
 }
 
 export function filterJob(job: JobForFilter): FilterResult {
@@ -131,6 +178,12 @@ export function filterJob(job: JobForFilter): FilterResult {
   }
 
   const required = matchedTerms(description, REQUIRED_SKILLS);
+  if (job.partial) {
+    // Kept on the title alone. Whatever skills the snippet happened to name
+    // are still reported, so the run summary is not silent about why.
+    return { keep: true, reason: "", matched: required };
+  }
+
   if (!required.length) {
     return {
       keep: false,

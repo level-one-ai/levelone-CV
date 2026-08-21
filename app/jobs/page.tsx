@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import { Globe, Loader2, Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
@@ -17,13 +17,17 @@ import { asJobView, type JobStatus, type JobView, type StoredJob } from "@/lib/j
  * back button works.
  */
 
-interface ScrapeSummary {
-  mode?: "local" | "remote";
+interface LegSummary {
   added: number;
   duplicates: number;
   filtered: number;
   discarded: number;
   notes: string[];
+}
+
+interface ScrapeSummary extends LegSummary {
+  /** The same numbers split by leg, so "18 new" can say where they came from. */
+  legs?: Partial<Record<"local" | "remote", LegSummary>>;
 }
 
 const EMPTY_COUNTS: Record<JobStatus, number> = {
@@ -60,7 +64,7 @@ function JobsBoard() {
   const [jobs, setJobs] = useState<StoredJob[]>([]);
   const [counts, setCounts] = useState<Record<JobStatus, number>>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
-  const [scraping, setScraping] = useState<"" | "local" | "remote">("");
+  const [scraping, setScraping] = useState(false);
   const [error, setError] = useState("");
   const [summary, setSummary] = useState<ScrapeSummary | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -88,15 +92,14 @@ function JobsBoard() {
   // Arriving from a button on the front screen: run that search straight away
   // rather than making him press a second button for the same intent.
   useEffect(() => {
-    const requested = params.get("search");
-    if (requested !== "local" && requested !== "remote") return;
+    if (!params.get("search")) return;
     router.replace(`/jobs?view=${view}`);
-    void handleScrape(requested);
+    void handleScrape();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleScrape(mode: "local" | "remote") {
-    setScraping(mode);
+  async function handleScrape() {
+    setScraping(true);
     setError("");
     setSummary(null);
 
@@ -104,7 +107,7 @@ function JobsBoard() {
       const response = await fetch("/api/jobs/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }),
+        body: JSON.stringify({}),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "The search failed.");
@@ -114,7 +117,7 @@ function JobsBoard() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "The search failed.");
     } finally {
-      setScraping("");
+      setScraping(false);
     }
   }
 
@@ -167,11 +170,12 @@ function JobsBoard() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleScrape("local")}
-                disabled={scraping !== ""}
+                onClick={() => handleScrape()}
+                disabled={scraping}
+                title="Around Edinburgh, and remote anywhere else in the UK"
                 className="btn-primary disabled:opacity-60"
               >
-                {scraping === "local" ? (
+                {scraping ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                     Searching…
@@ -183,48 +187,32 @@ function JobsBoard() {
                   </>
                 )}
               </button>
-
-              <button
-                type="button"
-                onClick={() => handleScrape("remote")}
-                disabled={scraping !== ""}
-                title="Remote roles anywhere in the UK, excluding Edinburgh and Glasgow"
-                className="btn-ghost disabled:opacity-60"
-              >
-                {scraping === "remote" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    Searching…
-                  </>
-                ) : (
-                  <>
-                    <Globe className="h-4 w-4" aria-hidden />
-                    Remote (UK)
-                  </>
-                )}
-              </button>
             </div>
           </header>
 
           {scraping ? (
             <p className="mt-4 text-fluid-xs text-muted">
-              {scraping === "remote"
-                ? "Looking for remote roles across the UK, minus Edinburgh and Glasgow. "
-                : "Looking around Edinburgh. "}
-              This takes a few minutes. LinkedIn is fetched one advert at a
-              time, on purpose — asking faster is how it stops answering.
+              Looking around Edinburgh first, then for remote roles across the
+              rest of the UK. This takes several minutes — LinkedIn is fetched
+              one advert at a time, on purpose, because asking faster is how it
+              stops answering. Leave the tab open.
             </p>
           ) : null}
 
           {summary ? (
             <div className="card mt-6">
               <p className="text-fluid-sm text-foreground">
-                {summary.mode === "remote" ? "Remote (UK): " : ""}
                 <strong>{summary.added}</strong> new
                 {summary.duplicates ? `, ${summary.duplicates} already seen` : ""}
                 {summary.filtered ? `, ${summary.filtered} filtered out` : ""}
                 {summary.discarded ? `, ${summary.discarded} scored too low` : ""}.
               </p>
+              {summary.legs ? (
+                <p className="mt-1 text-fluid-xs text-muted">
+                  {summary.legs.local?.added ?? 0} around Edinburgh,{" "}
+                  {summary.legs.remote?.added ?? 0} remote elsewhere in the UK.
+                </p>
+              ) : null}
               {summary.notes.length ? (
                 <ul className="mt-2 space-y-1 text-fluid-xs text-muted">
                   {summary.notes.map((note, i) => (
@@ -253,7 +241,7 @@ function JobsBoard() {
               </p>
               <p className="mt-2 text-fluid-sm text-muted">
                 {view === "top-match" || view === "all"
-                  ? "Press Search jobs to look through LinkedIn, Indeed and Google. Anything scoring under 40% is discarded rather than shown."
+                  ? "Press Search jobs to look through LinkedIn, Indeed, Google, Glassdoor, Adzuna and Reed. Anything scoring under 40% is discarded rather than shown."
                   : "Nothing in this list yet."}
               </p>
             </div>

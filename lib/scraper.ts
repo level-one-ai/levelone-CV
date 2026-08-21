@@ -42,6 +42,14 @@ export interface ScrapedJob {
   companyIndustry: string;
   companyUrl: string;
   companyNumEmployees: string;
+  /**
+   * The description is a summary rather than the whole advert.
+   *
+   * True only for Adzuna, whose search API truncates. It travels with the job
+   * so `filterJob()` can relax the required-skill rule and the card can say the
+   * advert is only partly here — see `lib/sources/adzuna.ts`.
+   */
+  partialDescription?: boolean;
 }
 
 export interface ScrapeResult {

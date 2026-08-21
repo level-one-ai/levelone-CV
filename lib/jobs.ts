@@ -6,7 +6,7 @@ import { scoreJob, type JobScore } from "@/lib/job-score";
 import { COLLECTIONS, describePocketBaseError } from "@/lib/pocketbase";
 import type { ScrapedJob } from "@/lib/scraper";
 import { keepRemoteJob } from "@/lib/uk-location";
-import type { MasterCv } from "@/lib/types";
+import type { DuplicateMatch, MasterCv } from "@/lib/types";
 
 /**
  * Turning scraped adverts into stored, scored jobs.
@@ -57,11 +57,28 @@ export interface StoredJob {
   is_remote: boolean;
   score: number;
   tier: string;
-  score_reasons: JobScore | null;
+  score_reasons: StoredScore | null;
   status: JobStatus;
   application: string;
   created: string;
+  /**
+   * A past application that looks like this same job, or null.
+   *
+   * Worked out when the list is read rather than stored, so it is never stale:
+   * apply to something today and every matching job says so immediately, with
+   * no field to migrate and nothing to keep in step.
+   */
+  duplicate: DuplicateMatch | null;
 }
+
+/**
+ * A stored score, plus one fact about how it was reached.
+ *
+ * `partial` means the advert was only a summary — see `lib/sources/adzuna.ts`.
+ * The score is still real, but the gap list is not trustworthy, because you
+ * cannot list what an advert failed to ask for when you only read a third of it.
+ */
+export type StoredScore = JobScore & { partial?: boolean };
 
 export interface ScrapeSummary {
   /** Jobs newly written to the database. */
@@ -111,10 +128,11 @@ export function toStoredJob(record: RecordModel): StoredJob {
     is_remote: Boolean(record.is_remote),
     score: Number(record.score ?? 0),
     tier: String(record.tier ?? ""),
-    score_reasons: parseJson<JobScore | null>(record.score_reasons, null),
+    score_reasons: parseJson<StoredScore | null>(record.score_reasons, null),
     status: asJobStatus(record.status),
     application: String(record.application ?? ""),
     created: String(record.created ?? ""),
+    duplicate: null,
   };
 }
 
@@ -160,7 +178,11 @@ export async function storeScrapedJobs(
       }
     }
 
-    const verdict = filterJob({ title: job.title, description: job.description });
+    const verdict = filterJob({
+      title: job.title,
+      description: job.description,
+      partial: job.partialDescription,
+    });
     if (!verdict.keep) {
       summary.filtered++;
       continue;
@@ -198,7 +220,10 @@ export async function storeScrapedJobs(
         is_remote: job.isRemote,
         score: scored.score,
         tier: scored.tier,
-        score_reasons: scored,
+        // The partial marker rides along in the JSON rather than needing a
+        // column of its own — score_reasons is already a JSON field, and this
+        // is a fact ABOUT the score: it was computed from a summary.
+        score_reasons: job.partialDescription ? { ...scored, partial: true } : scored,
         status: "Scraped",
         application: "",
       });
@@ -277,6 +302,10 @@ export async function listJobs(
     .collection(COLLECTIONS.scrapedJobs)
     .getList(1, 200, { sort, filter });
 
+  // `duplicate` is filled in by `lib/applied.ts`, which the API route calls
+  // next. It lives in its own module on purpose: the matcher hashes with
+  // node:crypto, and this file is imported by the board, which is a client
+  // component. Pulling a Node built-in into the browser bundle fails the build.
   return records.items.map(toStoredJob);
 }
 

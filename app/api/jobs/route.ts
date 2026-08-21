@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { withDuplicates } from "@/lib/applied";
 import {
   asJobView,
   countByStatus,
@@ -19,10 +20,13 @@ export async function GET(request: Request) {
 
   try {
     const pb = await superuserClient();
-    const [items, counts] = await Promise.all([
+    const [jobs, counts] = await Promise.all([
       listJobs(pb, view),
       countByStatus(pb),
     ]);
+    // Marks anything he has applied to before. Done here rather than in
+    // listJobs so the client bundle never reaches the node:crypto matcher.
+    const items = await withDuplicates(pb, jobs);
     return NextResponse.json({ view, items, counts });
   } catch (err) {
     // A 404 here means the collection does not exist yet, which is a setup

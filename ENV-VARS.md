@@ -39,9 +39,12 @@ reason: **they are secret**. The code goes on GitHub. This file never does.
 | `GEMINI_CV_PROMPT` | **Optional** — leave blank | None |
 | `PDF_CHROMIUM_PATH` | **Optional** — leave blank | None |
 | `CV_REDACT_NAMES` | **Optional** — extra names to hide | None |
+| `ADZUNA_APP_ID` | **Optional** — one more job site | 3 minutes |
+| `ADZUNA_APP_KEY` | **Optional** — goes with the one above | Same page |
+| `REED_API_KEY` | **Optional** — one more job site | 3 minutes |
 
-Only **one** of them comes from a website. Two you invent. The rest already
-work as they are.
+Only **one** of them is needed from a website. Two you invent. The rest already
+work as they are, and everything marked Optional can stay blank.
 
 ---
 
@@ -408,6 +411,11 @@ GEMINI_MODEL=gemini-2.5-flash
 GEMINI_CV_PROMPT=
 PDF_CHROMIUM_PATH=
 CV_REDACT_NAMES=
+
+# Optional — two more job sites. See "more job sites" further down.
+ADZUNA_APP_ID=
+ADZUNA_APP_KEY=
+REED_API_KEY=
 ```
 
 Save the file.
@@ -503,6 +511,78 @@ place to remember, so a new client cannot be missed.
 Use `CV_REDACT_NAMES` for names that are not tied to any single project — a
 company mentioned in a work-experience bullet, say. Both lists are enforced
 the same way.
+
+---
+
+## Optional: more job sites
+
+**Short version: you can skip this.** The job search already works with no key
+at all. It looks through LinkedIn, Indeed, Google and Glassdoor, and none of
+them ask for anything.
+
+**Why you might want them anyway.** Those four sites are being *scraped* — the
+system reads them the way a person would. LinkedIn in particular stops
+answering after about ten pages from one address. That is not a bug and there
+is no way around it. Adzuna and Reed are different: they are proper APIs, with
+a key that says who you are, and they answer every time.
+
+So these two settings buy you **more jobs, more reliably**. Nothing breaks
+without them. If you leave them blank, the run summary simply says
+"adzuna: skipped" and carries on.
+
+### `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`
+
+These two always go together. One sign-up gets you both.
+
+1. Go to **https://developer.adzuna.com**
+2. Click **Sign Up** and fill in your email
+3. Confirm the email they send you
+4. You land on a page showing two things:
+   - an **Application ID** — short, about eight characters
+   - an **Application Key** — long, about thirty characters
+5. Copy the short one into `ADZUNA_APP_ID`
+6. Copy the long one into `ADZUNA_APP_KEY`
+
+```
+ADZUNA_APP_ID=1a2b3c4d
+ADZUNA_APP_KEY=9f8e7d6c5b4a39281706f5e4d3c2b1a0
+```
+
+**One thing to know about Adzuna.** It only hands over a *summary* of each
+advert — the first few lines, not the whole thing. The system keeps those jobs
+anyway, because a real job with a short description still beats not knowing it
+exists. It marks them on the card: *"This site only gives a summary of the
+advert."* When you see that, open the posting and read the real thing before
+you apply.
+
+### `REED_API_KEY`
+
+Reed is the biggest UK-only job board, and one key covers it.
+
+1. Go to **https://www.reed.co.uk/developers**
+2. Click to register for the API
+3. They email you a key — one long line of letters and numbers
+4. Paste it in
+
+```
+REED_API_KEY=a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+Reed gives the **full** advert, so those jobs get scored on the whole thing,
+the same as LinkedIn.
+
+### What about Glassdoor?
+
+Nothing to do. Glassdoor is searched by the same scraper that does LinkedIn and
+Indeed, so it needs no key. It is fussier than the others and will sometimes
+return nothing — when that happens the run summary tells you why rather than
+pretending nobody is hiring.
+
+### Adding them in Coolify
+
+Same as every other setting: open your app, go to **Environment Variables**,
+press **Add**, type the name in the left box and the value in the right box,
+save, then **Redeploy**. The names must match exactly, capitals and all.
 
 ---
 

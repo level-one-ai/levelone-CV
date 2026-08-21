@@ -61,18 +61,29 @@ On Coolify, set the build pack to **Dockerfile** (not Nixpacks) and the port to
 
 ## Finding jobs
 
-The front screen is three buttons: **Search Jobs**, **Remote (UK)** and **Jobs
-List**. `/jobs` searches LinkedIn, Indeed and Google on demand, never on a
-schedule. Each result is filtered, scored 0-100 and stored in `scraped_jobs`.
+The front screen is two buttons: **Search Jobs** and **Jobs List**. `/jobs`
+searches on demand, never on a schedule. Each result is filtered, scored 0-100
+and stored in `scraped_jobs`.
 
-Two search modes:
+One press, two legs, into one list:
 
-| Mode | Asks the boards for |
+| Leg | Asks for |
 | --- | --- |
-| **Search Jobs** | Anything around Edinburgh, any working pattern |
-| **Remote (UK)** | Remote roles across the whole UK, **minus Edinburgh and Glasgow** — those are already covered by the local run |
+| **Local** | Anything around Edinburgh, any working pattern |
+| **Remote (UK)** | Remote roles across the whole UK, **minus Edinburgh and Glasgow** — those are already covered by the local leg |
 
-The remote mode adds a gate in `lib/uk-location.ts`, because a UK-scoped search
+Six sources. LinkedIn, Indeed, Google and Glassdoor go through python-jobspy
+and need no key. Adzuna and Reed are keyed APIs (`ADZUNA_APP_ID`,
+`ADZUNA_APP_KEY`, `REED_API_KEY`) and are skipped with a note when the keys are
+absent — worth having because an API answers every time, where a scraped board
+rate limits. Adzuna returns only a summary of each advert, so those jobs skip
+the required-skill rule and say so on the card.
+
+Anything you have applied to before is flagged on the card and needs a second
+press to apply again. The check runs when the board is read rather than being
+stored, so it is never stale — see `lib/applied.ts`.
+
+The remote leg adds a gate in `lib/uk-location.ts`, because a UK-scoped search
 still returns "Remote" listings from Austin and Bangalore — the boards match on
 the word, not the place. The rule is **keep unless the location clearly names
 somewhere else**, since an allow-list would discard every advert that says

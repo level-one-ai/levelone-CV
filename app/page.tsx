@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Globe, List, Search } from "lucide-react";
+import { List, Search } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
@@ -16,6 +16,10 @@ const Background3D = dynamic(() => import("@/components/Background3D"), {
  * Was a paste box; now two buttons, because finding jobs happens inside the
  * system rather than in a browser tab. Pasting still exists at /paste for a job
  * someone sends directly, and is linked from the job board's sidebar.
+ *
+ * Deliberately TWO buttons and not three: the local and remote searches are one
+ * question asked of two places, and making someone press both — then merge the
+ * answers in their head — was the wrong shape for it.
  */
 export default function HomePage() {
   return (
@@ -42,22 +46,17 @@ export default function HomePage() {
             </h1>
 
             <p className="max-w-md text-fluid-base text-muted">
-              Search for AI and automation roles near Edinburgh, or remote roles
-              anywhere in the UK. Every job is scored against your profile
-              before you see it.
+              One search covers AI and automation roles around Edinburgh and
+              remote roles anywhere else in the UK. Every job is scored against
+              your profile before you see it.
             </p>
 
             <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
               {/* search=1 makes the board start a search on arrival, so this is
                   one press rather than two for the same intention. */}
-              <Link href="/jobs?view=top-match&search=local" className="btn-primary">
+              <Link href="/jobs?view=top-match&search=1" className="btn-primary">
                 <Search className="h-4 w-4" aria-hidden />
                 Search Jobs
-              </Link>
-
-              <Link href="/jobs?view=top-match&search=remote" className="btn-ghost">
-                <Globe className="h-4 w-4" aria-hidden />
-                Remote (UK)
               </Link>
 
               <Link href="/jobs?view=all" className="btn-ghost">

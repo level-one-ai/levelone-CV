@@ -45,7 +45,7 @@ def main():
             "pip install --break-system-packages python-jobspy"
         )
 
-    sites = request.get("sites") or ["linkedin", "indeed", "google"]
+    sites = request.get("sites") or ["linkedin", "indeed", "google", "glassdoor"]
     search_term = request.get("search_term") or "AI Engineer"
     location = request.get("location") or "Edinburgh, Scotland"
     results_wanted = int(request.get("results_wanted") or 25)
@@ -98,6 +98,10 @@ def main():
                 # what the CV is written against. It costs one extra request
                 # per job, which is why runs are deliberately small.
                 linkedin_fetch_description=(site == "linkedin"),
+                # Glassdoor reads the same country setting as Indeed, which is
+                # already passed above. Nothing else it needs — but it rate
+                # limits hard, and the note capture below is what says so
+                # instead of reporting an empty run as "nobody is hiring".
                 description_format="markdown",
             )
         except Exception as exc:  # noqa: BLE001 - any failure is one site's failure
