@@ -18,6 +18,10 @@ export interface ScrapeRequest {
   resultsWanted?: number;
   /** Only jobs posted within this many hours. 720 = 30 days. */
   hoursOld?: number;
+  /** Ask the boards for remote roles only. */
+  isRemote?: boolean;
+  /** Google wants a sentence, not keywords. Ignored by the other sites. */
+  googleSearchTerm?: string;
 }
 
 /** One job, as this app understands it, whichever site it came from. */
@@ -74,6 +78,8 @@ export async function scrapeJobs(request: ScrapeRequest): Promise<ScrapeResult> 
     sites: request.sites,
     results_wanted: request.resultsWanted,
     hours_old: request.hoursOld,
+    is_remote: request.isRemote,
+    google_search_term: request.googleSearchTerm,
   });
 
   const raw = await runPython(payload);

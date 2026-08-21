@@ -26,7 +26,19 @@ const DEFAULT_SEARCHES = [
   "Automation Engineer",
 ];
 
+/**
+ * Two ways to search.
+ *
+ *   local  — Edinburgh and the commute, any working pattern
+ *   remote — remote roles across the UK, MINUS Edinburgh and Glasgow, which
+ *            the local run already covers
+ *
+ * Kept as one endpoint rather than two because everything after the fetch —
+ * filtering, scoring, dedup, storage — is identical. Only the question asked of
+ * the boards differs.
+ */
 const bodySchema = z.object({
+  mode: z.enum(["local", "remote"]).optional(),
   searches: z.array(z.string().trim().min(2)).min(1).max(6).optional(),
   location: z.string().trim().min(2).max(100).optional(),
   sites: z.array(z.enum(["linkedin", "indeed", "google"])).min(1).optional(),
@@ -49,8 +61,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not read the request." }, { status: 400 });
   }
 
+  const mode = body.mode ?? "local";
+  const remoteOnly = mode === "remote";
+
   const searches = body.searches ?? DEFAULT_SEARCHES;
-  const location = body.location ?? "Edinburgh, Scotland";
+  // "United Kingdom" rather than a city: a remote role in Bristol is as
+  // reachable from Edinburgh as one in Leith.
+  const location =
+    body.location ?? (remoteOnly ? "United Kingdom" : "Edinburgh, Scotland");
   const sites = body.sites ?? ["linkedin", "indeed", "google"];
   const resultsWanted = body.resultsWanted ?? 25;
 
@@ -82,6 +100,12 @@ export async function POST(request: Request) {
           sites,
           resultsWanted,
           hoursOld: body.hoursOld ?? 720,
+          isRemote: remoteOnly,
+          // Google ignores the location parameter on a remote search and needs
+          // the constraint in the query itself, as a sentence.
+          googleSearchTerm: remoteOnly
+            ? `${searchTerm} remote jobs in the United Kingdom`
+            : undefined,
         });
       } catch (err) {
         // One search failing should not lose the other two, or the jobs
@@ -92,7 +116,13 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const summary = await storeScrapedJobs(pb, result.jobs, profile, result.notes);
+      const summary = await storeScrapedJobs(
+        pb,
+        result.jobs,
+        profile,
+        result.notes,
+        { remoteOnly }
+      );
       totals.added += summary.added;
       totals.duplicates += summary.duplicates;
       totals.filtered += summary.filtered;
@@ -102,7 +132,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(totals);
+    return NextResponse.json({ ...totals, mode });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : describePocketBaseError(err);

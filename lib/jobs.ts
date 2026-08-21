@@ -5,6 +5,7 @@ import { filterJob } from "@/lib/job-filter";
 import { scoreJob, type JobScore } from "@/lib/job-score";
 import { COLLECTIONS, describePocketBaseError } from "@/lib/pocketbase";
 import type { ScrapedJob } from "@/lib/scraper";
+import { keepRemoteJob } from "@/lib/uk-location";
 import type { MasterCv } from "@/lib/types";
 
 /**
@@ -128,7 +129,13 @@ export async function storeScrapedJobs(
   pb: PocketBase,
   scraped: ScrapedJob[],
   profile: string[],
-  notes: string[]
+  notes: string[],
+  /**
+   * A remote run applies an extra gate: UK only, and not the two cities the
+   * local search already covers. Boards return foreign "Remote" listings from
+   * a UK-scoped search often enough that this is not optional.
+   */
+  { remoteOnly = false }: { remoteOnly?: boolean } = {}
 ): Promise<ScrapeSummary> {
   const summary: ScrapeSummary = {
     added: 0,
@@ -140,6 +147,18 @@ export async function storeScrapedJobs(
 
   for (const job of scraped) {
     if (!job.jobUrl) continue;
+
+    if (remoteOnly) {
+      const remote = keepRemoteJob({
+        location: job.location,
+        isRemote: job.isRemote,
+        description: job.description,
+      });
+      if (!remote.keep) {
+        summary.filtered++;
+        continue;
+      }
+    }
 
     const verdict = filterJob({ title: job.title, description: job.description });
     if (!verdict.keep) {

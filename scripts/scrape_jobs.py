@@ -50,6 +50,11 @@ def main():
     location = request.get("location") or "Edinburgh, Scotland"
     results_wanted = int(request.get("results_wanted") or 25)
     hours_old = int(request.get("hours_old") or 720)
+    is_remote = bool(request.get("is_remote"))
+    # Google needs a natural-language query rather than keywords, so a remote
+    # run has to say "remote" and "United Kingdom" in the sentence itself —
+    # its location parameter alone does not narrow a remote search.
+    google_search_term = request.get("google_search_term") or None
 
     jobs = []
     notes = []
@@ -86,6 +91,8 @@ def main():
                 results_wanted=results_wanted,
                 hours_old=hours_old,
                 country_indeed="UK",
+                is_remote=is_remote,
+                google_search_term=google_search_term,
                 # Without this LinkedIn returns no description at all, and the
                 # description is the entire point — it is what gets scored and
                 # what the CV is written against. It costs one extra request

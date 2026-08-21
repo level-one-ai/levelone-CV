@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import { Loader2, Search } from "lucide-react";
+import { Globe, Loader2, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
@@ -18,6 +18,7 @@ import { asJobView, type JobStatus, type JobView, type StoredJob } from "@/lib/j
  */
 
 interface ScrapeSummary {
+  mode?: "local" | "remote";
   added: number;
   duplicates: number;
   filtered: number;
@@ -59,7 +60,7 @@ function JobsBoard() {
   const [jobs, setJobs] = useState<StoredJob[]>([]);
   const [counts, setCounts] = useState<Record<JobStatus, number>>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
-  const [scraping, setScraping] = useState(false);
+  const [scraping, setScraping] = useState<"" | "local" | "remote">("");
   const [error, setError] = useState("");
   const [summary, setSummary] = useState<ScrapeSummary | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -84,17 +85,18 @@ function JobsBoard() {
     void refresh();
   }, [refresh]);
 
-  // Arriving from "Search Jobs" on the front screen: run the search straight
-  // away rather than making him press a second button for the same intent.
+  // Arriving from a button on the front screen: run that search straight away
+  // rather than making him press a second button for the same intent.
   useEffect(() => {
-    if (params.get("search") !== "1") return;
+    const requested = params.get("search");
+    if (requested !== "local" && requested !== "remote") return;
     router.replace(`/jobs?view=${view}`);
-    void handleScrape();
+    void handleScrape(requested);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleScrape() {
-    setScraping(true);
+  async function handleScrape(mode: "local" | "remote") {
+    setScraping(mode);
     setError("");
     setSummary(null);
 
@@ -102,7 +104,7 @@ function JobsBoard() {
       const response = await fetch("/api/jobs/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ mode }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "The search failed.");
@@ -112,7 +114,7 @@ function JobsBoard() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "The search failed.");
     } finally {
-      setScraping(false);
+      setScraping("");
     }
   }
 
@@ -162,28 +164,53 @@ function JobsBoard() {
               <p className="mt-1 text-fluid-sm text-muted">{heading.blurb}</p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleScrape}
-              disabled={scraping}
-              className="btn-primary disabled:opacity-60"
-            >
-              {scraping ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  Searching…
-                </>
-              ) : (
-                <>
-                  <Search className="h-4 w-4" aria-hidden />
-                  Search jobs
-                </>
-              )}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleScrape("local")}
+                disabled={scraping !== ""}
+                className="btn-primary disabled:opacity-60"
+              >
+                {scraping === "local" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Searching…
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4" aria-hidden />
+                    Search jobs
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleScrape("remote")}
+                disabled={scraping !== ""}
+                title="Remote roles anywhere in the UK, excluding Edinburgh and Glasgow"
+                className="btn-ghost disabled:opacity-60"
+              >
+                {scraping === "remote" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Searching…
+                  </>
+                ) : (
+                  <>
+                    <Globe className="h-4 w-4" aria-hidden />
+                    Remote (UK)
+                  </>
+                )}
+              </button>
+            </div>
           </header>
 
           {scraping ? (
             <p className="mt-4 text-fluid-xs text-muted">
+              {scraping === "remote"
+                ? "Looking for remote roles across the UK, minus Edinburgh and Glasgow. "
+                : "Looking around Edinburgh. "}
               This takes a few minutes. LinkedIn is fetched one advert at a
               time, on purpose — asking faster is how it stops answering.
             </p>
@@ -192,6 +219,7 @@ function JobsBoard() {
           {summary ? (
             <div className="card mt-6">
               <p className="text-fluid-sm text-foreground">
+                {summary.mode === "remote" ? "Remote (UK): " : ""}
                 <strong>{summary.added}</strong> new
                 {summary.duplicates ? `, ${summary.duplicates} already seen` : ""}
                 {summary.filtered ? `, ${summary.filtered} filtered out` : ""}

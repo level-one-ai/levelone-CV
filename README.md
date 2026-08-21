@@ -61,9 +61,23 @@ On Coolify, set the build pack to **Dockerfile** (not Nixpacks) and the port to
 
 ## Finding jobs
 
-The front screen is two buttons: **Search Jobs** and **Jobs List**. `/jobs`
-searches LinkedIn, Indeed and Google on demand, never on a schedule. Each result
-is filtered, scored 0-100 and stored in `scraped_jobs`.
+The front screen is three buttons: **Search Jobs**, **Remote (UK)** and **Jobs
+List**. `/jobs` searches LinkedIn, Indeed and Google on demand, never on a
+schedule. Each result is filtered, scored 0-100 and stored in `scraped_jobs`.
+
+Two search modes:
+
+| Mode | Asks the boards for |
+| --- | --- |
+| **Search Jobs** | Anything around Edinburgh, any working pattern |
+| **Remote (UK)** | Remote roles across the whole UK, **minus Edinburgh and Glasgow** — those are already covered by the local run |
+
+The remote mode adds a gate in `lib/uk-location.ts`, because a UK-scoped search
+still returns "Remote" listings from Austin and Bangalore — the boards match on
+the word, not the place. The rule is **keep unless the location clearly names
+somewhere else**, since an allow-list would discard every advert that says
+nothing but "Remote", which is most of them. A job whose location is not marked
+remote is kept only if the advert itself says "fully remote" or "remote-first".
 
 The sidebar holds the views: **Top match** (best fit, nothing actioned), **All
 jobs**, **Not applied**, **Applied**, **Not interested**, and **Paste an

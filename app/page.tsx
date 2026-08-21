@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { List, Search } from "lucide-react";
+import { Globe, List, Search } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
@@ -42,16 +42,22 @@ export default function HomePage() {
             </h1>
 
             <p className="max-w-md text-fluid-base text-muted">
-              Search for AI and automation roles, or open the ones already
-              found. Every job is scored against your profile before you see it.
+              Search for AI and automation roles near Edinburgh, or remote roles
+              anywhere in the UK. Every job is scored against your profile
+              before you see it.
             </p>
 
             <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
               {/* search=1 makes the board start a search on arrival, so this is
                   one press rather than two for the same intention. */}
-              <Link href="/jobs?view=top-match&search=1" className="btn-primary">
+              <Link href="/jobs?view=top-match&search=local" className="btn-primary">
                 <Search className="h-4 w-4" aria-hidden />
                 Search Jobs
+              </Link>
+
+              <Link href="/jobs?view=top-match&search=remote" className="btn-ghost">
+                <Globe className="h-4 w-4" aria-hidden />
+                Remote (UK)
               </Link>
 
               <Link href="/jobs?view=all" className="btn-ghost">
