@@ -2,24 +2,16 @@
 
 import { motion } from "framer-motion";
 import { Download, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+
+import PdfPreview, { downloadHref } from "@/components/PdfPreview";
 
 /**
  * Split-screen document viewer.
  *
- * The PDF is served by our own /api/applications/[id]/file route and shown in
- * the browser's built-in PDF viewer. Nothing is converted or re-rendered, so
- * what you see here is exactly the file an employer receives — which was the
- * whole point of moving from Word to PDF.
+ * The panel itself — the slide-in, the header, Escape to close. The document
+ * inside it is `PdfPreview`, shared with the application page.
  */
-/**
- * The download link is the same URL with download=1 on it — but the cover note
- * URL already carries ?doc=cover-note, so appending "?download=1" would make
- * nonsense of it. Build it properly rather than by string concatenation.
- */
-function downloadHref(docUrl: string): string {
-  return docUrl + (docUrl.includes("?") ? "&" : "?") + "download=1";
-}
 
 export default function CvViewerPanel({
   docUrl,
@@ -33,8 +25,6 @@ export default function CvViewerPanel({
   label?: string;
   onClose: () => void;
 }) {
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-
   // Escape closes the panel, matching every other slide-over on the web.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -43,26 +33,6 @@ export default function CvViewerPanel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-
-  // An <iframe> fires `load` for a failed response too, so check the document
-  // is really there before deciding the preview worked.
-  useEffect(() => {
-    let cancelled = false;
-    setStatus("loading");
-
-    fetch(docUrl, { method: "HEAD" })
-      .then((response) => {
-        if (cancelled) return;
-        setStatus(response.ok ? "ready" : "error");
-      })
-      .catch(() => {
-        if (!cancelled) setStatus("error");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [docUrl]);
 
   return (
     <motion.aside
@@ -101,34 +71,7 @@ export default function CvViewerPanel({
       </header>
 
       <div className="relative flex-1 overflow-hidden p-3">
-        {status === "loading" ? (
-          <div
-            className="h-full animate-pulse rounded-2xl border border-line bg-white/60"
-            aria-hidden
-          />
-        ) : null}
-
-        {status === "error" ? (
-          <div className="card">
-            <p className="text-fluid-sm font-semibold text-foreground">
-              Could not open this document
-            </p>
-            <p className="mt-2 text-fluid-sm text-muted">
-              The document could not be loaded. Try downloading it instead.
-            </p>
-            <a href={downloadHref(docUrl)} className="btn-ghost mt-4 !px-5 !py-2">
-              Download PDF
-            </a>
-          </div>
-        ) : null}
-
-        {status === "ready" ? (
-          <iframe
-            src={docUrl}
-            title={label}
-            className="h-full w-full rounded-2xl border border-line bg-white"
-          />
-        ) : null}
+        <PdfPreview docUrl={docUrl} label={label} className="h-full" />
       </div>
     </motion.aside>
   );

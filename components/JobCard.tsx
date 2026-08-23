@@ -10,6 +10,8 @@ import {
   MapPin,
   X,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { StoredJob } from "@/lib/jobs";
@@ -17,16 +19,29 @@ import type { StoredJob } from "@/lib/jobs";
 /**
  * One scraped job: what it is, what it scored, why, and what to do about it.
  *
- * Applying is two steps on purpose:
+ * Applying is two steps on purpose, and they now happen on two screens:
  *
- *   1. "Prepare application" writes the CV and cover note. Nothing is generated
- *      before this — a search of fifty jobs must not cost fifty Gemini calls.
- *   2. "Apply to Position" opens the advert AND marks the job Applied.
+ *   1. **Apply**, here, writes the CV and cover note and opens the application
+ *      page. Nothing is generated before this — a search of fifty jobs must not
+ *      cost fifty Gemini calls.
+ *   2. **Apply to Position**, over there, opens the advert AND marks the job
+ *      Applied.
  *
  * Splitting them means a job he prepared but did not send stays honestly marked
- * as not applied, rather than the board quietly claiming he applied to things
- * he only looked at.
+ * as not applied. Keeping step two on the other screen means it cannot be
+ * pressed without the documents being in front of him — which is the point of
+ * generating them at all.
  */
+
+/**
+ * Where the documents live.
+ *
+ * The job id rides along so "Apply to Position" over there knows which advert
+ * to open and which row to mark applied.
+ */
+function applicationHref(applicationId: string, jobId: string): string {
+  return `/applications/${applicationId}?job=${encodeURIComponent(jobId)}`;
+}
 
 /** Says WHICH past application this looks like, in a sentence. */
 function describeDuplicate(match: NonNullable<StoredJob["duplicate"]>): string {
@@ -65,6 +80,7 @@ export default function JobCard({
   index: number;
   onChanged: (job: StoredJob) => void;
 }) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [applicationId, setApplicationId] = useState(job.application);
@@ -113,20 +129,16 @@ export default function JobCard({
       setApplicationId(id);
       // Status stays "Scraped": the documents exist, the application does not.
       onChanged(await patch("Scraped", id));
+
+      // Straight to the documents. Nothing opens until they are written, so
+      // the page is never half-there.
+      router.push(applicationHref(id, job.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
       setBusy(false);
     }
-  }
-
-  /** Step two: he is actually applying. */
-  async function handleApplied() {
-    try {
-      onChanged(await patch("Applied", applicationId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not mark it applied.");
-    }
+    // No `finally`: on success the page is navigating away, and dropping the
+    // spinner first would flash a finished-looking card for half a second.
   }
 
   async function handleDismiss() {
@@ -223,7 +235,15 @@ export default function JobCard({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        {!prepared ? (
+        {prepared ? (
+          <Link
+            href={applicationHref(applicationId, job.id)}
+            className="btn-primary !px-5 !py-2 !text-fluid-xs"
+          >
+            <FileText className="h-3.5 w-3.5" aria-hidden />
+            Open application
+          </Link>
+        ) : (
           <button
             type="button"
             onClick={() => (needsConfirming ? setConfirmed(true) : handlePrepare())}
@@ -245,43 +265,9 @@ export default function JobCard({
               "Apply"
             )}
           </button>
-        ) : (
-          <>
-            {job.job_url ? (
-              <a
-                href={job.job_url}
-                target="_blank"
-                rel="noreferrer"
-                onClick={handleApplied}
-                className="btn-primary !px-5 !py-2 !text-fluid-xs"
-              >
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                Apply to Position
-              </a>
-            ) : null}
-
-            <a
-              href={`/api/applications/${applicationId}/file`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-fluid-xs text-muted transition hover:text-foreground"
-            >
-              <FileText className="h-3.5 w-3.5" aria-hidden />
-              CV
-            </a>
-            <a
-              href={`/api/applications/${applicationId}/file?doc=cover-note`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-fluid-xs text-muted transition hover:text-foreground"
-            >
-              <FileText className="h-3.5 w-3.5" aria-hidden />
-              Cover note
-            </a>
-          </>
         )}
 
-        {!prepared && job.job_url ? (
+        {job.job_url ? (
           <a
             href={job.job_url}
             target="_blank"

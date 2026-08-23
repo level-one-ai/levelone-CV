@@ -316,21 +316,36 @@ function projectsBlock(application: GeneratedApplication): string {
     .join("\n");
 }
 
-/** A tidy, sortable filename: `CV-Dean-Finlayson-AI-Engineer-Acme.pdf`. */
+/**
+ * The name a downloaded document is saved under: `Acme_AI_Engineer_cv.pdf`.
+ *
+ * Employer first, then the role, because that is the order you look for them
+ * in: "what did I send Acme?" comes up far more often than "where are all my
+ * AI Engineer CVs?".
+ *
+ * The candidate's name is the fallback for the front slot, not a fixed part —
+ * an advert with no company would otherwise produce `AI_Engineer_cv.pdf`, which
+ * every application for that role would share.
+ */
 export function buildFileName(
   application: GeneratedApplication,
-  fullName: string
+  fullName: string,
+  kind: "cv" | "cover_note" = "cv"
 ): string {
+  // Letters and numbers survive; everything else becomes one underscore. Job
+  // titles are full of brackets, slashes, em dashes and stray punctuation —
+  // "Senior AI Engineer (Agentic) — Remote" has to come out readable.
   const slug = (value: string) =>
-    value
-      .replace(/[^\p{L}\p{N}]+/gu, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40);
+    (value ?? "")
+      .replace(/[^\p{L}\p{N}]+/gu, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40)
+      .replace(/_+$/, "");
 
-  const parts = ["CV", slug(fullName), slug(application.job_title)];
-  if (application.company) parts.push(slug(application.company));
+  const who = slug(application.company) || slug(fullName);
+  const parts = [who, slug(application.job_title), kind];
 
-  return `${parts.filter(Boolean).join("-")}.pdf`;
+  return `${parts.filter(Boolean).join("_")}.pdf`;
 }
 
 /** Where the built-in template lives when PocketBase has no copy yet. */
@@ -509,10 +524,10 @@ export function buildCoverNoteHtml({
   );
 }
 
-/** `Cover-Note-Dean-Finlayson-AI-Engineer-Acme.pdf`. */
+/** `Acme_AI_Engineer_cover_note.pdf`. */
 export function buildCoverNoteFileName(
   application: GeneratedApplication,
   fullName: string
 ): string {
-  return buildFileName(application, fullName).replace(/^CV-/, "Cover-Note-");
+  return buildFileName(application, fullName, "cover_note");
 }

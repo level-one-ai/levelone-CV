@@ -95,14 +95,28 @@ jobs**, **Not applied**, **Applied**, **Not interested**, and **Paste an
 advert** for a job someone sends you directly (the old front screen, now at
 `/paste`).
 
-Applying is two steps, deliberately:
+Applying is two steps on two screens, deliberately:
 
-1. **Apply** writes the CV and cover note. Nothing is generated before this — a
-   search of fifty jobs must not cost fifty Gemini calls.
-2. **Apply to Position** opens the advert and marks the job `Applied`.
+1. **Apply**, on the job card, writes the CV and cover note and opens
+   `/applications/[id]`. Nothing is generated before this — a search of fifty
+   jobs must not cost fifty Gemini calls.
+2. **Apply to Position**, on that page, opens the advert and marks the job
+   `Applied`.
 
 Splitting them means a job you prepared but did not send stays honestly marked
-as not applied.
+as not applied. Keeping step two on the application page means it cannot be
+pressed without the documents being in front of you.
+
+The application page is where everything about one application lives: both PDFs
+previewed side by side with the text (`components/PdfPreview.tsx`), and every
+field you might have to paste into a form by hand — cover note, CV summary,
+skills matched, screening answers — each with its own Copy button
+(`components/OutputCards.tsx`, shared with the paste flow).
+
+Downloads are named `{company}_{job_title}_cv.pdf` and
+`{company}_{job_title}_cover_note.pdf`. The name is built when the file is
+served rather than read off the stored record, so applications generated under
+the old naming download under the new one too.
 
 ```
 Find jobs  ─▶  POST /api/jobs/scrape

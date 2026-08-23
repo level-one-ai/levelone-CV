@@ -8,7 +8,11 @@ import {
   loadMasterCv,
   loadProfilePhoto,
 } from "@/lib/cv";
-import { buildCoverNoteFileName, buildCoverNoteHtml } from "@/lib/cv-html";
+import {
+  buildCoverNoteFileName,
+  buildCoverNoteHtml,
+  buildFileName,
+} from "@/lib/cv-html";
 import {
   COLLECTIONS,
   describePocketBaseError,
@@ -154,6 +158,17 @@ export async function GET(
       );
     }
 
+    // The name to SAVE it under, which is not the name PocketBase stored it
+    // under. A record written before the naming changed still holds
+    // "CV-Dean-Finlayson-AI-Engineer-Acme.pdf" in its field, and that name is
+    // what an employer would receive. Building it fresh from the record means
+    // every download is named the same way, not just the ones generated since.
+    const application = toApplicationRecord(record);
+    const profileName = (await loadMasterCv(pb)).profile.full_name;
+    const downloadName = wantsCoverNote
+      ? buildCoverNoteFileName(application, profileName)
+      : buildFileName(application, profileName);
+
     // A short-lived file token so this also works when the `pdf` field is
     // marked Protected in PocketBase.
     const token = await pb.files.getToken();
@@ -172,7 +187,7 @@ export async function GET(
     return new NextResponse(await upstream.arrayBuffer(), {
       headers: {
         "Content-Type": PDF_MIME,
-        "Content-Disposition": `${asDownload ? "attachment" : "inline"}; filename="${fileName}"`,
+        "Content-Disposition": `${asDownload ? "attachment" : "inline"}; filename="${downloadName}"`,
         // The bytes never change once written, but the record can be deleted,
         // so keep it private and short.
         "Cache-Control": "private, max-age=60",
