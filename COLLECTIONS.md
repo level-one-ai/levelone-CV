@@ -262,7 +262,17 @@ Write more bullets than you need. The AI picks the ones that match each advert.
 | `client_name` | Plain text | `Grove Group` — **never printed on your CV** |
 
 `tech` is a JSON list, same rules as `bullets`: square brackets, quotes around
-each item, commas between.
+each item, commas between. A plain comma-separated line — `n8n, Docker, Stripe`
+— works too, and is split on commas as well as newlines.
+
+**This field now does two jobs.** It is what the CV writer draws the project's
+tech line from, and it is what the job board scores against. Every tool listed
+here becomes a capability the match can prove with a project name: a card
+saying "n8n · Lead Scraping & Outreach Pipeline" is reading this field. Leave a
+tool off a project and the board will report it as something you have not used.
+
+Run `npm run rescore` after editing any project, so the stored scores reflect
+what you can now evidence.
 
 ### Keeping your clients anonymous
 
@@ -421,7 +431,7 @@ The design uses `{{placeholders}}` where your details go. Two kinds:
 | `is_remote` | Bool | |
 | `score` | Number | 0-100 |
 | `tier` | Plain text | `tier-1` or `tier-2`; below 40 is never stored |
-| `score_reasons` | JSON | what scored, what cost, and what is missing from your profile |
+| `score_reasons` | JSON | the full match: what the advert asked for, which project proves each one, what is missing, and any blockers |
 | `status` | **Select** | `Scraped`, `Applied`, `Dismissed` — all three needed |
 | `application` | Plain text | the `applications` id, once you have applied |
 | `created` · `updated` | Autodate | **required** — the listing sorts on `created` |
@@ -433,7 +443,7 @@ whole job is lost. `npm run setup:pocketbase` checks this and tells you which
 option is missing.
 
 - **Scraped** — found by a search, still waiting on you
-- **Applied** — you pressed *Apply to Position*
+- **Applied** — you pressed *Applied* on the job card, or *Apply to Position* on the application page
 - **Dismissed** — you pressed *Not interested*
 
 **There is no applicant count.** The scraper does not return one for any board,

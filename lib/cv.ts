@@ -192,7 +192,11 @@ export async function loadMasterCv(pb: PocketBase): Promise<MasterCv> {
     name: String(r.name ?? ""),
     role: String(r.role ?? ""),
     description: String(r.description ?? ""),
-    tech: asList(r.tech),
+    // asSkillList, not asList: a tech field typed in the Admin UI as "n8n,
+    // Docker" is one line, and splitting it on newlines alone returns a single
+    // blob that matches no requirement. Bullets keep asList — they contain
+    // commas of their own.
+    tech: asSkillList(r.tech),
     outcome: String(r.outcome ?? ""),
     link: String(r.link ?? ""),
     order: Number(r.order ?? 0),

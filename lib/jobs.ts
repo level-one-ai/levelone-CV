@@ -1,18 +1,19 @@
 import type PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
 
+import type { CapabilityProfile } from "@/lib/capabilities";
 import { filterJob } from "@/lib/job-filter";
-import { scoreJob, type JobScore } from "@/lib/job-score";
+import { isJobMatch, matchJob, type JobMatch } from "@/lib/job-match";
 import { COLLECTIONS, describePocketBaseError } from "@/lib/pocketbase";
 import type { ScrapedJob } from "@/lib/scraper";
 import { keepRemoteJob } from "@/lib/uk-location";
-import type { DuplicateMatch, MasterCv } from "@/lib/types";
+import type { DuplicateMatch } from "@/lib/types";
 
 /**
  * Turning scraped adverts into stored, scored jobs.
  *
  * The scrape itself is in `lib/scraper.ts`, the rules in `lib/job-filter.ts`
- * and `lib/job-score.ts`. This is the part that talks to PocketBase.
+ * and `lib/job-match.ts`. This is the part that talks to PocketBase.
  */
 
 /**
@@ -51,13 +52,14 @@ export interface StoredJob {
   date_posted: string;
   salary_text: string;
   job_level: string;
+  job_function: string;
   company_industry: string;
   company_num_employees: string;
   description: string;
   is_remote: boolean;
   score: number;
   tier: string;
-  score_reasons: StoredScore | null;
+  score_reasons: JobMatch | null;
   status: JobStatus;
   application: string;
   created: string;
@@ -72,13 +74,13 @@ export interface StoredJob {
 }
 
 /**
- * A stored score, plus one fact about how it was reached.
+ * What gets written into the `score_reasons` JSON column.
  *
- * `partial` means the advert was only a summary — see `lib/sources/adzuna.ts`.
- * The score is still real, but the gap list is not trustworthy, because you
- * cannot list what an advert failed to ask for when you only read a third of it.
+ * `JobMatch` already carries its own `partial` marker — see
+ * `lib/sources/adzuna.ts` for why a snippet needs one — so there is nothing to
+ * wrap. Kept as an alias because plenty of call sites read better for it.
  */
-export type StoredScore = JobScore & { partial?: boolean };
+export type StoredScore = JobMatch;
 
 export interface ScrapeSummary {
   /** Jobs newly written to the database. */
@@ -93,11 +95,6 @@ export interface ScrapeSummary {
   notes: string[];
 }
 
-/** The candidate's own skills and tools, for the gap list. */
-export function profileTerms(cv: MasterCv): string[] {
-  return [...cv.profile.tools, ...cv.skills].map((entry) => entry.trim()).filter(Boolean);
-}
-
 function parseJson<T>(value: unknown, fallback: T): T {
   if (value === null || value === undefined || value === "") return fallback;
   if (typeof value === "string") {
@@ -108,6 +105,19 @@ function parseJson<T>(value: unknown, fallback: T): T {
     }
   }
   return value as T;
+}
+
+/**
+ * Reads a stored score back, discarding anything the old scorer wrote.
+ *
+ * Rows scored before the coverage rebuild carry `boosts`/`evidence`/`gaps` and
+ * no `components`. Rendering half of that shape would show an evidence list
+ * built from the wrong question, so it is dropped and the card falls back to
+ * the bare number until `npm run rescore` replaces it.
+ */
+function readMatch(value: unknown): JobMatch | null {
+  const parsed = parseJson<unknown>(value, null);
+  return isJobMatch(parsed) ? parsed : null;
 }
 
 export function toStoredJob(record: RecordModel): StoredJob {
@@ -122,13 +132,14 @@ export function toStoredJob(record: RecordModel): StoredJob {
     date_posted: String(record.date_posted ?? ""),
     salary_text: String(record.salary_text ?? ""),
     job_level: String(record.job_level ?? ""),
+    job_function: String(record.job_function ?? ""),
     company_industry: String(record.company_industry ?? ""),
     company_num_employees: String(record.company_num_employees ?? ""),
     description: String(record.description ?? ""),
     is_remote: Boolean(record.is_remote),
     score: Number(record.score ?? 0),
     tier: String(record.tier ?? ""),
-    score_reasons: parseJson<StoredScore | null>(record.score_reasons, null),
+    score_reasons: readMatch(record.score_reasons),
     status: asJobStatus(record.status),
     application: String(record.application ?? ""),
     created: String(record.created ?? ""),
@@ -146,7 +157,7 @@ export function toStoredJob(record: RecordModel): StoredJob {
 export async function storeScrapedJobs(
   pb: PocketBase,
   scraped: ScrapedJob[],
-  profile: string[],
+  profile: CapabilityProfile,
   notes: string[],
   /**
    * A remote run applies an extra gate: UK only, and not the two cities the
@@ -181,6 +192,7 @@ export async function storeScrapedJobs(
     const verdict = filterJob({
       title: job.title,
       description: job.description,
+      industry: job.companyIndustry,
       partial: job.partialDescription,
     });
     if (!verdict.keep) {
@@ -189,10 +201,11 @@ export async function storeScrapedJobs(
     }
 
     // Title, location and description together: "Edinburgh" is usually in the
-    // location field rather than the body, and it is worth 10 points.
-    const scored = scoreJob(
+    // location field rather than the body, and it carries real weight.
+    const scored = matchJob(
       `${job.title}\n${job.location}\n${job.jobType}\n${job.description}`,
-      profile
+      profile,
+      { partial: job.partialDescription }
     );
 
     if (scored.tier === "discard") {
@@ -220,10 +233,10 @@ export async function storeScrapedJobs(
         is_remote: job.isRemote,
         score: scored.score,
         tier: scored.tier,
-        // The partial marker rides along in the JSON rather than needing a
-        // column of its own — score_reasons is already a JSON field, and this
-        // is a fact ABOUT the score: it was computed from a summary.
-        score_reasons: job.partialDescription ? { ...scored, partial: true } : scored,
+        // The whole breakdown rides in the JSON rather than needing columns of
+        // its own — score_reasons is already a JSON field, and matched/missing
+        // is what the card renders.
+        score_reasons: scored,
         status: "Scraped",
         application: "",
       });
@@ -339,4 +352,60 @@ export async function setJobStatus(
     ...(applicationId ? { application: applicationId } : {}),
   });
   return toStoredJob(record);
+}
+
+/**
+ * Re-scores every stored job against the current CV.
+ *
+ * The match is a pure function of the advert text and the capability profile,
+ * so nothing has to be re-scraped to fix a stale number — and the profile
+ * changes every time a project is added to `cv_projects`, which is exactly when
+ * the old scores stop being true.
+ *
+ * Jobs that now fall below Tier 2 are dismissed rather than deleted. A score
+ * is a judgement, and a judgement that has changed once can change again.
+ */
+export async function rescoreJobs(
+  pb: PocketBase,
+  profile: CapabilityProfile
+): Promise<{ updated: number; movedTier: number; dismissed: number }> {
+  let updated = 0;
+  let movedTier = 0;
+  let dismissed = 0;
+
+  let page = 1;
+  for (;;) {
+    const records = await pb
+      .collection(COLLECTIONS.scrapedJobs)
+      .getList(page, 200, { sort: "created" });
+
+    for (const record of records.items) {
+      const job = toStoredJob(record);
+      const scored = matchJob(
+        `${job.title}\n${job.location}\n${job.job_type}\n${job.description}`,
+        profile,
+        // Nothing on the record says the description was a snippet once the old
+        // score_reasons is gone, so length stands in: Adzuna returns a couple
+        // of hundred characters and a real advert runs to thousands.
+        { partial: job.description.length < 600 }
+      );
+
+      const nowDismissed = scored.tier === "discard" && job.status === "Scraped";
+      if (scored.tier !== record.tier) movedTier++;
+      if (nowDismissed) dismissed++;
+
+      await pb.collection(COLLECTIONS.scrapedJobs).update(job.id, {
+        score: scored.score,
+        tier: scored.tier,
+        score_reasons: scored,
+        ...(nowDismissed ? { status: "Dismissed" } : {}),
+      });
+      updated++;
+    }
+
+    if (records.items.length < 200 || page >= records.totalPages) break;
+    page++;
+  }
+
+  return { updated, movedTier, dismissed };
 }

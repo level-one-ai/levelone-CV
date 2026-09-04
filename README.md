@@ -72,6 +72,16 @@ One press, two legs, into one list:
 | **Local** | Anything around Edinburgh, any working pattern |
 | **Remote (UK)** | Remote roles across the whole UK, **minus Edinburgh and Glasgow** — those are already covered by the local leg |
 
+The search runs ten terms, one per role family: AI Engineer, AI Solutions
+Architect, Automation Engineer, AI Implementation Consultant, AI Enablement,
+Automation Specialist, No-Code Engineer, AI Operations, AI Product Manager,
+Prompt Engineer. Broad titles that are as common outside software as in it —
+Project Manager, Solutions Architect, Implementation Consultant — only pass when
+the advert also says something that places it in software, and a title naming
+construction, building services or surveying is rejected outright. See
+`GUARDED_TITLES`, `TECH_SIGNALS` and `NON_TECH_TITLE_BLOCKERS` in
+`lib/job-filter.ts`.
+
 Six sources. LinkedIn, Indeed, Google and Glassdoor go through python-jobspy
 and need no key. Adzuna and Reed are keyed APIs (`ADZUNA_APP_ID`,
 `ADZUNA_APP_KEY`, `REED_API_KEY`) and are skipped with a note when the keys are
@@ -107,6 +117,12 @@ Splitting them means a job you prepared but did not send stays honestly marked
 as not applied. Keeping step two on the application page means it cannot be
 pressed without the documents being in front of you.
 
+There is a third door for the ones you send elsewhere. **Applied**, on the job
+card itself, marks the job without generating anything — for a job you applied
+to through the employer's own site, or from your phone. The card leaves the
+board the moment you press it and turns up under **Applied**, where **Move back
+to jobs** undoes it. Any documents already generated survive the round trip.
+
 The application page is where everything about one application lives: both PDFs
 previewed side by side with the text (`components/PdfPreview.tsx`), and every
 field you might have to paste into a form by hand — cover note, CV summary,
@@ -122,7 +138,7 @@ the old naming download under the new one too.
 Find jobs  ─▶  POST /api/jobs/scrape
                  1. scraper.ts  → spawns scripts/scrape_jobs.py (python-jobspy)
                  2. job-filter  → title rules, required and banned skills
-                 3. job-score   → 0-100, tier, and the gaps in your profile
+                 3. job-match   → 0-100 coverage, tier, matched and missing
                  4. PocketBase  → scraped_jobs, deduped on a unique job_url
 ```
 
@@ -132,13 +148,30 @@ Three things worth knowing before you rely on it:
   need one extra request each. Runs are deliberately small and slow. A partial
   result with a note is normal, not a failure.
 - **Applicant counts are not available.** jobspy does not return them.
-- **The score measures the advert, not you.** It rewards two things: the stack
-  these roles ask for (LangGraph, RAG, vector databases, FastAPI) and the things
-  you can actually evidence (shipping end to end, n8n, integrations, client-
-  facing work, employers who hire on portfolio rather than degree). The second
-  group is capped at 30 points so a wordy advert cannot out-score a good one.
-  Each card shows both halves: **You can evidence** in green, **Not on your
-  profile** in amber. Read those before the number.
+- **The score is coverage, and it reads `cv_projects`.** It works out what the
+  advert actually asks for, then checks each demand against an index built from
+  your tools, your human skills **and the tech on every stored project**. 90%
+  means nine tenths of what they asked for is something you have shipped. The
+  card names the project behind each one — "n8n · Lead Scraping & Outreach
+  Pipeline" — because a tool you have built with is an interview answer and a
+  tool on a list is a liability.
+
+  Four parts, weighted: tech 50%, role shape 20%, ways of working 15%,
+  logistics 15%. A group the advert says nothing about scores a neutral 50
+  rather than a zero. Hard blockers (a stack you do not work in, a CS degree
+  requirement, ten years, a five-day office) multiply the result down instead of
+  subtracting from it, so one of them cannot be out-shouted by a wordy advert.
+  A score from an Adzuna summary is capped at 75, because three sentences cannot
+  honestly earn a 90.
+
+  Each card shows both halves: **You can evidence** in green, **They ask for,
+  you have not used** in amber. Read those before the number.
+
+  Scoring is a pure function, so nothing has to be re-scraped to fix a stale
+  number. Run `npm run rescore` after this change and after every edit to
+  `cv_projects` — a new project changes what you can evidence, and a board
+  sorted on last month's evidence is showing you the wrong job first. Tune the
+  weights offline with `npm run check:matching`.
 
 Job searching needs Python and `python-jobspy`. Both are in the Docker image;
 locally, `pip install --break-system-packages python-jobspy`.
@@ -164,7 +197,9 @@ PocketBase · `@google/genai` · `playwright-core` driving headless Chromium ·
 | `templates/cv-template.html` | The default CV design, seeded into PocketBase |
 | `templates/cover-note-template.html` | The cover note design, likewise |
 | `lib/scraper.ts` | Runs the Python scraper and types its output |
-| `lib/job-filter.ts` · `lib/job-score.ts` | The rules and the 0-100 score, pure |
+| `lib/job-filter.ts` | Title rules, guarded titles, non-tech blockers, banned skills |
+| `lib/capabilities.ts` | What you can evidence, built from tools, skills and project tech |
+| `lib/job-match.ts` | The requirement taxonomy and the 0-100 coverage score, pure |
 | `lib/jobs.ts` | Stores and lists scraped jobs |
 | `app/jobs/page.tsx` | The job board |
 | `scripts/scrape_jobs.py` | The only Python: jobspy in, JSON out |
