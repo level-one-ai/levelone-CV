@@ -8,12 +8,14 @@ import {
   FileText,
   Loader2,
   MapPin,
+  Undo2,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import type { JobMatch } from "@/lib/job-match";
 import type { StoredJob } from "@/lib/jobs";
 
 /**
@@ -31,6 +33,12 @@ import type { StoredJob } from "@/lib/jobs";
  * as not applied. Keeping step two on the other screen means it cannot be
  * pressed without the documents being in front of him — which is the point of
  * generating them at all.
+ *
+ * **Applied**, here, is the third door: it marks the job applied without
+ * generating anything, for the ones sent through the employer's own site or
+ * from a phone. It is about STATE, not documents, so it does not disturb the
+ * two steps above — and because Top match is `status = "Scraped"`, pressing it
+ * clears the job off the board immediately. Move back undoes it.
  */
 
 /**
@@ -71,6 +79,34 @@ function tierLabel(tier: string): { text: string; className: string } {
     : { text: "Tier 2 · moderate", className: "border border-line text-muted" };
 }
 
+/** How a matched requirement reads on the card: "n8n · Lead Scraping Pipeline". */
+function describeMatch(entry: JobMatch["matched"][number]): string {
+  return entry.proven ? `${entry.id} · ${entry.via}` : entry.id;
+}
+
+/**
+ * The score in four parts, so the number can be argued with.
+ *
+ * Only groups the advert actually asked something of are shown — a component
+ * sitting at the neutral 0.5 because the advert never mentioned it says nothing
+ * and would read as a middling result rather than a missing question.
+ */
+const COMPONENT_LABELS: Array<[keyof JobMatch["components"], string]> = [
+  ["tech", "tech"],
+  ["role", "role"],
+  ["ways-of-working", "how they work"],
+  ["circumstance", "logistics"],
+];
+
+function componentSummary(match: JobMatch): string {
+  return COMPONENT_LABELS.filter(([group]) =>
+    match.matched.some((m) => m.group === group) ||
+    match.missing.some((m) => m.group === group)
+  )
+    .map(([group, label]) => `${label} ${Math.round(match.components[group] * 100)}%`)
+    .join(" · ");
+}
+
 export default function JobCard({
   job,
   index,
@@ -89,10 +125,10 @@ export default function JobCard({
   const tier = tierLabel(job.tier);
   const reasons = job.score_reasons;
   // A score worked out from a summary can say what the advert DID ask for, but
-  // not what it did not — so the gap list is hidden rather than guessed at.
+  // not what it did not — so the missing list is hidden rather than guessed at.
   const partial = Boolean(reasons?.partial);
-  const gaps = partial ? [] : reasons?.gaps ?? [];
-  const evidence = reasons?.evidence ?? [];
+  const matched = reasons?.matched ?? [];
+  const missing = partial ? [] : reasons?.missing ?? [];
   const prepared = Boolean(applicationId);
   // A warning, never a block. Two different jobs at one employer are a real
   // thing, and he is the one who knows which this is.
@@ -149,12 +185,39 @@ export default function JobCard({
     }
   }
 
+  /**
+   * Marks the job applied and takes it off the board.
+   *
+   * Any application record already generated rides along, so opening the job
+   * from the Applied tab still finds its CV and cover note.
+   */
+  async function handleApplied() {
+    try {
+      onChanged(await patch("Applied", applicationId || undefined));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not mark it applied.");
+    }
+  }
+
+  /** Undo. A misclick should cost one press, not a re-scrape. */
+  async function handleUnapply() {
+    try {
+      onChanged(await patch("Scraped", applicationId || undefined));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not move it back.");
+    }
+  }
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
+      // AnimatePresence has always wrapped this list; without an exit the card
+      // it removes just vanishes. Pressing Applied is the first action that
+      // takes a card off the board while you are looking at it.
+      exit={{ opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.2 } }}
       transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04 }}
-      className="card"
+      className="card overflow-hidden"
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -196,18 +259,30 @@ export default function JobCard({
         {job.source ? <span className="uppercase tracking-wide">{job.source}</span> : null}
       </dl>
 
-      {evidence.length ? (
+      {matched.length ? (
         <p className="mt-3 rounded-xl bg-emerald-50/70 px-3 py-2 text-fluid-xs text-emerald-900">
           <strong>You can evidence:</strong>{" "}
-          {evidence.map((e) => e.term).join(", ")}
+          {matched.slice(0, 6).map(describeMatch).join(", ")}
         </p>
       ) : null}
 
-      {gaps.length ? (
+      {missing.length ? (
         <p className="mt-2 rounded-xl bg-amber-50/70 px-3 py-2 text-fluid-xs text-amber-900">
-          <strong>Not on your profile:</strong> {gaps.join(", ")}. Expect to be
-          asked about these.
+          <strong>They ask for, you have not used:</strong>{" "}
+          {missing.slice(0, 6).map((m) => m.id).join(", ")}. Expect to be asked
+          about these.
         </p>
+      ) : null}
+
+      {reasons?.blockers.length ? (
+        <p className="mt-2 rounded-xl bg-amber-100/80 px-3 py-2 text-fluid-xs text-amber-950">
+          <strong>Working against you:</strong>{" "}
+          {reasons.blockers.map((b) => b.label).join("; ")}.
+        </p>
+      ) : null}
+
+      {reasons ? (
+        <p className="mt-2 text-fluid-xs text-muted">{componentSummary(reasons)}</p>
       ) : null}
 
       {seenBefore ? (
@@ -278,6 +353,26 @@ export default function JobCard({
             View posting
           </a>
         ) : null}
+
+        {job.status === "Applied" ? (
+          <button
+            type="button"
+            onClick={handleUnapply}
+            className="inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-fluid-xs text-muted transition hover:text-foreground"
+          >
+            <Undo2 className="h-3.5 w-3.5" aria-hidden />
+            Move back to jobs
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleApplied}
+            className="inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-fluid-xs text-muted transition hover:text-emerald-700"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+            Applied
+          </button>
+        )}
 
         {job.status !== "Dismissed" ? (
           <button

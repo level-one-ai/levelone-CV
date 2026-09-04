@@ -51,7 +51,7 @@ Replace both before you send this anywhere.
 Automation engineer and founder with four years building production AI systems for small businesses. Runs Level One, delivering custom CRMs, lead generation pipelines, document routing and internal dashboards that replace manual admin work. Works end to end, scoping the problem with the client, building the system, and running it in production afterwards. Background in civil engineering and building surveying, which is where the habit of working to a spec and checking the details came from.
 ```
 
-Write this one long. The AI cuts it down to 50-75 words for each advert, but it
+Write this one long. The AI cuts it down to 80-120 words for each advert, but it
 can never add something you did not tell it.
 
 ### `skills` — keep this to **6**
@@ -71,7 +71,7 @@ n8n, Make.com, Custom Webhooks, REST APIs, Claude Code, Cursor, GitHub Copilot, 
 ```
 
 List everything you genuinely use. This one is safe to make long — the AI picks
-the 10-12 that match each advert and drops the rest, so a longer list just gives
+the 4 that match each advert and drops the rest, so a longer list just gives
 it more to match on. This is also the part applicant tracking software reads.
 
 ### `education`
@@ -217,14 +217,15 @@ right size. Measured, not guessed:
 
 | Section | Budget |
 | --- | --- |
-| Profile summary | 50-75 words |
+| Profile summary | 80-120 words, 3-4 sentences |
 | Skills | 6 |
-| Tools shown | 10-12 (from your longer list) |
-| Jobs | 2 |
-| Bullets | 4 on the current role, 1 on earlier roles |
-| Bullet length | 14-24 words |
-| Projects shown | 3 (from your five) |
+| Tools shown | 4 (from your longer list) |
+| Jobs | 2 most recent in full, all older ones merged into "Earlier Roles" |
+| Bullets | exactly 1 per job |
+| Bullet length | 20-30 words |
+| Projects shown | 2 (from your five) |
 | Project description | 20-30 words |
+| Cover note | 120-180 words |
 
 The AI is told these limits and cuts rather than compresses. If a CV ever does
 run to two pages, the app logs a warning naming what to trim — it will not

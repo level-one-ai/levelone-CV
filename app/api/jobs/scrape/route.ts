@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { buildCapabilityProfile } from "@/lib/capabilities";
 import { loadMasterCv } from "@/lib/cv";
-import { profileTerms, storeScrapedJobs, type ScrapeSummary } from "@/lib/jobs";
+import { storeScrapedJobs, type ScrapeSummary } from "@/lib/jobs";
 import { describePocketBaseError, superuserClient } from "@/lib/pocketbase";
 import { scrapeJobs, type ScrapeResult } from "@/lib/scraper";
 import { scrapeAdzuna } from "@/lib/sources/adzuna";
@@ -18,15 +19,34 @@ export const maxDuration = 800;
 /**
  * The searches this runs, one per press.
  *
- * Three terms rather than eleven job titles: the boards match loosely, and
- * every extra term is another set of requests against a host that rate limits.
- * The title rule in `lib/job-filter.ts` is what actually decides relevance, so
- * the search only has to be roughly right.
+ * One term per role family rather than one per job title: the boards match
+ * loosely, so "AI Operations" already returns the AI Ops Leads and the AI
+ * Enablement Managers, and every extra term is another set of requests against
+ * a host that rate limits. The title rule in `lib/job-filter.ts` is what
+ * actually decides relevance, so the search only has to be roughly right.
+ *
+ * The five families here are the ones an agency owner is competitive for:
+ * building, consulting, automating, owning delivery, and running the models.
+ * None of them is a construction job — see NON_TECH_TITLE_BLOCKERS for the
+ * gate that keeps it that way when a board returns one anyway.
  */
+// Not exported: a route file may only export handlers and route config.
 const DEFAULT_SEARCHES = [
+  // Building.
   "AI Engineer",
   "AI Solutions Architect",
   "Automation Engineer",
+  // Consulting and strategy.
+  "AI Implementation Consultant",
+  "AI Enablement",
+  // Automating, no-code and low-code.
+  "Automation Specialist",
+  "No-Code Engineer",
+  "AI Operations",
+  // Owning delivery.
+  "AI Product Manager",
+  // Running the models.
+  "Prompt Engineer",
 ];
 
 /** Sites python-jobspy scrapes. The two API sources are handled separately. */
@@ -51,7 +71,9 @@ interface Leg {
 }
 
 const bodySchema = z.object({
-  searches: z.array(z.string().trim().min(2)).min(1).max(6).optional(),
+  // Twelve, not six: the default set is ten terms and a caller should be able
+  // to pass the whole thing back with room to add one.
+  searches: z.array(z.string().trim().min(2)).min(1).max(12).optional(),
   sites: z.array(z.enum(SCRAPED_SITES)).min(1).optional(),
   resultsWanted: z.number().int().min(1).max(100).optional(),
   hoursOld: z.number().int().min(1).max(8760).optional(),
@@ -106,10 +128,11 @@ export async function POST(request: Request) {
   try {
     const pb = await superuserClient();
 
-    // The candidate's own tools, so the scoring can say which of the things an
-    // advert wants are missing from his profile.
+    // Tools, human skills AND the tech on every stored project, so the scoring
+    // can say not just that a requirement is met but which shipped system
+    // proves it.
     const cv = await loadMasterCv(pb);
-    const profile = profileTerms(cv);
+    const profile = buildCapabilityProfile(cv);
 
     const totals = emptySummary();
     const perLeg: Record<string, ScrapeSummary> = {};

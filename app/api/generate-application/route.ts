@@ -13,8 +13,10 @@ import {
   buildCvHtml,
   buildFileName,
 } from "@/lib/cv-html";
+import { buildCapabilityProfile } from "@/lib/capabilities";
 import { findDuplicate, type PastApplication } from "@/lib/duplicates";
 import { generateApplication } from "@/lib/gemini";
+import { matchJob } from "@/lib/job-match";
 import { renderPdf } from "@/lib/pdf";
 import {
   COLLECTIONS,
@@ -112,10 +114,16 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Gemini maps that history onto this advert.
-    const application = await generateApplication(jobDescription, cv);
+    // 3. Work out what this advert asks for and which stored projects prove it.
+    //    Computed here rather than read off the scraped_jobs row on purpose:
+    //    the paste page has no row, and the same advert should produce the same
+    //    evidence whichever door it came through.
+    const match = matchJob(jobDescription, buildCapabilityProfile(cv));
 
-    // 4. The same text is poured into the HTML template and printed to PDF,
+    // 4. Gemini maps that history onto this advert, leading on what is proven.
+    const application = await generateApplication(jobDescription, cv, match);
+
+    // 5. The same text is poured into the HTML template and printed to PDF,
     //    entirely in memory. The template comes from PocketBase when there is
     //    one, so edits made in the admin UI take effect immediately.
     const [template, coverNoteTemplate, photo] = await Promise.all([
@@ -154,11 +162,11 @@ export async function POST(request: Request) {
     if (pages > 1) {
       console.warn(
         `[generate-application] CV ran to ${pages} pages. Trim the content budget: ` +
-          "summary 50-75 words, 3-4 bullets on the current role, 3 projects, 10-12 tools."
+          "summary 80-120 words, one sentence per job, 2 projects, 4 tools, 4 human skills."
       );
     }
 
-    // 5. Text and document are stored together as one record, so reopening a
+    // 6. Text and document are stored together as one record, so reopening a
     //    past chat restores both halves of the screen.
     const form = new FormData();
     form.append("job_title", application.job_title);
